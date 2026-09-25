@@ -1,0 +1,14 @@
+{
+  "name": "@recur/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./keeper": "./src/keeper.ts"
+  },
+  "dependencies": {
+    "@solana/kit": "^8.0.0",
+    "@solana-program/token": "^0.16.0"
+  }
+}

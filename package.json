@@ -1,0 +1,25 @@
+{
+  "name": "recur",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build:program": "anchor build",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "dev": "npm run dev -w @recur/web",
+    "build": "npm run build -w @recur/web",
+    "keeper": "npm run start -w @recur/keeper",
+    "seed:devnet": "node --import tsx scripts/seed-devnet.ts",
+    "typecheck": "tsc -p packages/sdk && tsc -p apps/keeper"
+  },
+  "devDependencies": {
+    "@solana-program/system": "^0.15.0",
+    "@types/node": "^26.6.2",
+    "litesvm": "^1.4.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

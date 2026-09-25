@@ -1,0 +1,14 @@
+{
+  "name": "@recur/keeper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --import tsx src/index.ts",
+    "once": "node --import tsx src/index.ts --once"
+  },
+  "dependencies": {
+    "@recur/sdk": "*",
+    "@solana/kit": "^8.0.0"
+  }
+}

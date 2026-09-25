@@ -1,0 +1,10 @@
+target/
+node_modules/
+.next/
+.anchor/
+*.keypair.json
+keeper.json
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
