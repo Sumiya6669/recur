@@ -7,7 +7,7 @@ Talk to the user in Russian. Product UI, code, comments and pitch materials are 
 ## Status (handed over from claude.ai on Sep 26, 2026)
 
 Done and verified:
-- Anchor 1.2 program `programs/recur` — 12 LiteSVM tests pass (`npm test`).
+- Anchor 1.2 program `programs/recur` — 13 LiteSVM tests pass (`npm test`).
 - SDK `packages/sdk` (@solana/kit 8): instructions, decoders, flows with allowance math, keeper.
 - `scripts/e2e-local.ts` passes against `solana-test-validator` (subscribe x2, keeper charges the due one, cancel shrinks approval).
 - Next.js 16 app `apps/web`: landing with live orbit, dashboard (overview/subscribers/plans/developers, demo at `/dashboard?demo=1`), checkout `/pay/[plan]`, subscriber portal `/account`, API `/api/access`, `/api/cron/charge`, Blink `/api/actions/subscribe/[plan]`, `/actions.json`. `next build` passes; API smoke-tested against a local validator.
@@ -48,7 +48,7 @@ scripts/                    seed-devnet.ts, e2e-local.ts, publish-github.sh/.ps1
 ```bash
 npm install
 anchor build                 # or: cargo build-sbf --manifest-path programs/recur/Cargo.toml
-npm test                     # 12 tests
+npm test                     # 13 tests
 npm run dev                  # web on :3000
 npm run build                # web production build
 npx tsc -p packages/sdk && npx tsc -p apps/keeper && (cd apps/web && npx tsc --noEmit)

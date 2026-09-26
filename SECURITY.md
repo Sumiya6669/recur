@@ -9,7 +9,7 @@ We aim to acknowledge within 48 hours. The program is on devnet only; there are 
 Scope: `programs/recur/src/lib.rs` (Anchor 1.2), `packages/sdk`, `apps/keeper`, `apps/web` API routes.
 Method: manual review against the Solana program vulnerability classes (missing signer/owner checks, account
 substitution, PDA spoofing, arithmetic, CPI authority misuse, reinitialization, closing) plus OWASP-style review
-of the HTTP surface. Backed by 12 LiteSVM tests and an end-to-end run on `solana-test-validator`.
+of the HTTP surface. Backed by 13 LiteSVM tests and an end-to-end run on `solana-test-validator`.
 
 ## Summary
 

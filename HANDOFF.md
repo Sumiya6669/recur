@@ -12,8 +12,10 @@
 - Питч под критерии правил, письма мерчантам EN/RU/KZ, пример `examples/discord-gate`.
 - Ключи вне репозитория: `C:\Users\1C\.recur-keys\` (program, deployer, keeper, tester).
 
+- Лимит каждой подписки on-chain (`budget_remaining`, `extend`, ошибка 6012): 13 тестов, программа обновлена в devnet, e2e пройден.
+
 ## В работе (делает Claude)
-1. Лимит каждой подписки on-chain (`budget_remaining` + инструкция `extend`), тесты, SDK, веб, обновление программы в devnet.
+1. Кнопки «Открыть в Phantom / Solflare» на телефоне без кошелька.
 
 ## Ждёт пользователя
 - Тест с Phantom на телефоне, вычитка казахского, оповещение cron-job.org на `/api/status`, ограничение ключа Helius по домену,

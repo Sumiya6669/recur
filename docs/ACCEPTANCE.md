@@ -9,12 +9,12 @@
 
 | # | Критерий | Статус | Как проверено |
 |---|---|---|---|
-| A1 | 12 тестов LiteSVM проходят на свежей сборке | ✅ | CI `Program` на коммите `ee15795`, `cargo build-sbf` + `npm test` |
+| A1 | 13 тестов LiteSVM проходят на свежей сборке | ✅ | CI `Program` (ветка `feat/subscription-budget`, влита как `f2c5b81`), `cargo build-sbf` + `npm test` |
 | A2 | Программа развёрнута в devnet и исполняемая | ✅ | `getAccountInfo`: owner `BPFLoaderUpgradeab1e…`, executable, `/api/status` |
 | A3 | Деньги уходят только на счёт мерчанта, в зафиксированной сумме, не чаще раза за период, без списаний задним числом | ✅ | Тесты + повторное ревью `lib.rs` (ограничения `has_one`, `token::authority`, `checked_add`) |
 | A4 | Отменить может только подписчик или мерчант, аренда возвращается подписчику | ✅ | Тест `only subscriber or merchant can cancel` |
 | A5 | Token-2022 отклоняется | ✅ | Тест, `UnsupportedMint` |
-| A6 | Лимит каждой подписки хранится on-chain | ❌ | До mainnet: SECURITY.md, риск 7 |
+| A6 | Лимит каждой подписки хранится on-chain | ✅ | `budget_remaining` + `extend`, тест «each subscription stops at its own budget», программа обновлена в devnet (слот 504397848), e2e пройден |
 | A7 | Upgrade authority на мультисиге Squads | ❌ | До mainnet |
 | A8 | Внешний аудит | ❌ | До mainnet |
 

@@ -67,7 +67,7 @@ programs/recur      Anchor 1.2 program
 packages/sdk        TypeScript SDK (@solana/kit): instructions, accounts, flows, keeper
 apps/web            Next.js 16: landing, dashboard, checkout, subscriber portal, API, Blinks
 apps/keeper         Long-running keeper service
-tests               LiteSVM tests (12)
+tests               LiteSVM tests (13)
 scripts             devnet seeding, local and devnet end-to-end runs
 examples            Discord role gating (no dependencies)
 docs                pitch kit, webhooks, merchant outreach
@@ -77,7 +77,7 @@ docs                pitch kit, webhooks, merchant outreach
 
 ```bash
 npm install
-anchor build && npm test                 # 12 passing
+anchor build && npm test                 # 13 passing
 cp apps/web/.env.example apps/web/.env.local
 npm run dev                              # http://localhost:3000, demo at /dashboard?demo=1
 ```
