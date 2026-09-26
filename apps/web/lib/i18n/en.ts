@@ -33,6 +33,7 @@ export const en = {
     mobileHint: "On a phone, open this page inside your wallet app:",
     openIn: (wallet: string) => `Open in ${wallet}`,
     notNow: "Not now",
+    devnetHint: "This site runs on Solana Devnet. In Phantom: Settings → Developer Settings → Testnet Mode, then choose Solana Devnet.",
   },
   footer: {
     tagline: "Non-custodial recurring payments on Solana. Open source.",
@@ -310,6 +311,8 @@ export const en = {
     noTokenAccount: "This wallet has no USDC yet. Add USDC and try again.",
     alreadySubscribed: "This wallet is already subscribed to this plan.",
     noSol: "Not enough SOL for the network fee. Add a little SOL and try again.",
+    devnetSol: "On devnet you can get free SOL at faucet.solana.com.",
+    simulationFailed: "The network rejected this transaction before it was sent. Check that your wallet is on the same network as this site and holds a little SOL, then try again.",
   },
   legal: {
     title: "Terms and privacy",

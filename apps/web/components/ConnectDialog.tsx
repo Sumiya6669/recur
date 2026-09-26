@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState } from "@solana/wallet-adapter-base";
 import { useT } from "@/lib/i18n/client";
+import { CLUSTER } from "@/lib/config";
 
 export function ConnectDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { wallets, select, connected } = useWallet();
@@ -36,6 +37,9 @@ export function ConnectDialog({ open, onClose }: { open: boolean; onClose: () =>
       <div className="p-6">
         <h2 className="display text-[26px] font-semibold">{t.connect.title}</h2>
         <p className="mt-1 text-[14px] text-mute">{t.connect.body}</p>
+        {CLUSTER !== "mainnet" && (
+          <p className="mt-3 rounded-2xl border border-amber/30 bg-amber/5 px-4 py-3 text-[13px] leading-relaxed text-amber">{t.connect.devnetHint}</p>
+        )}
         <ul className={`flex flex-col gap-2 ${installed.length ? "mt-5" : ""}`}>
           {installed.map((w) => (
             <li key={w.adapter.name}>
