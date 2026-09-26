@@ -106,7 +106,7 @@ function Checkout() {
   return (
     <Frame>
       <div className="mx-auto grid max-w-5xl items-center gap-10 px-5 pb-16 pt-4 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:pt-10">
-        <div className="relative mx-auto w-full max-w-[480px] lg:order-1">
+        <div className="relative order-1 mx-auto w-full max-w-[340px] sm:max-w-[480px]">
           <Orbit items={items} lanes={[plan.name]} windowSecs={Number(plan.periodSecs) * payments}>
             <div className="numeral text-[clamp(48px,9vw,88px)]">{usdc(plan.amount)}</div>
             <div className="mt-2 text-[14px] text-mute">USDC {per.adverb}</div>
