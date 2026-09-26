@@ -51,6 +51,7 @@ npm run dev                  # web on :3000
 npm run build                # web production build
 npx tsc -p packages/sdk && npx tsc -p apps/keeper && (cd apps/web && npx tsc --noEmit)
 node --import tsx scripts/e2e-local.ts     # needs solana-test-validator with the program preloaded
+node --import tsx scripts/e2e-devnet.ts    # live site + devnet; env: RPC_URL, APP_URL, CRON_SECRET, SUBSCRIBER_KEYPAIR, PLAN
 npm run seed:devnet          # env: RPC_URL, RECUR_PROGRAM_ID, APP_URL, PAYER_KEYPAIR
 npm run keeper               # env: RPC_URL, KEEPER_SECRET_KEY, RECUR_PROGRAM_ID
 ```
