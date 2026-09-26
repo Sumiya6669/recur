@@ -59,7 +59,7 @@ We start with crypto-native communities, bots and API tools that already accept 
 - Code: https://github.com/Sumiya6669/recur
 - Program (devnet): `Dtzj1BPFspDjfACbQXDZ1Hsx6CizeYRg9aa2Po1BAawA`
 
-**Tracks:** [Payments / Stablecoins, whichever exists this season]
+**Tracks:** Solana ($100,000 across the 10 best products that integrate Solana), plus the overall ranking (Grand Champion and 20 standout teams). There is no separate payments track this season.
 
 ## Hard questions from judges
 
