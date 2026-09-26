@@ -30,6 +30,8 @@ export const en = {
     body: "Recur works with any Solana wallet. Your funds stay in it.",
     detected: "Detected",
     none: "No wallet found in this browser. Install one of these, then reload:",
+    mobileHint: "On a phone, open this page inside your wallet app:",
+    openIn: (wallet: string) => `Open in ${wallet}`,
     notNow: "Not now",
   },
   footer: {
