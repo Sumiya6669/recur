@@ -46,7 +46,7 @@ function loadOrbit(): typeof START {
 
 export default function Landing() {
   const items = useMemo(liveItems, []);
-  const { t } = useT();
+  const { t, locale } = useT();
   const L = t.landing;
   const [resumed, setResumed] = useState<typeof START | null>(null);
   const [collected, setCollected] = useState(START.collected);
@@ -90,7 +90,7 @@ export default function Landing() {
       {/* Hero */}
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-6 sm:px-8 lg:grid-cols-[1fr_1.05fr] lg:gap-6 lg:pb-24 lg:pt-10">
         <div className="max-w-xl">
-          <h1 className="display text-[clamp(44px,7.4vw,88px)] font-bold">
+          <h1 className={`display font-bold ${locale === "en" ? "text-[clamp(44px,7.4vw,88px)]" : "text-[clamp(40px,6.2vw,72px)]"}`}>
             {L.headline}
           </h1>
           <p className="mt-6 max-w-[34rem] text-[18px] leading-relaxed text-mute">
