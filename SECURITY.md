@@ -1,5 +1,11 @@
 # Security review: Recur program, SDK, keeper and web app
 
+## Reporting a vulnerability
+
+Please report privately through GitHub: **Security → Report a vulnerability** on
+https://github.com/Sumiya6669/recur. Don't open a public issue for anything that could put funds at risk.
+We aim to acknowledge within 48 hours. The program is on devnet only; there are no mainnet funds at risk yet.
+
 Scope: `programs/recur/src/lib.rs` (Anchor 1.2), `packages/sdk`, `apps/keeper`, `apps/web` API routes.
 Method: manual review against the Solana program vulnerability classes (missing signer/owner checks, account
 substitution, PDA spoofing, arithmetic, CPI authority misuse, reinitialization, closing) plus OWASP-style review
@@ -24,6 +30,11 @@ None found.
 | 2 | `/api/access` | Uncached public endpoint lets anyone burn the RPC quota | `s-maxage=15, stale-while-revalidate=30` edge caching |
 | 3 | `/api/cron/charge` | Bearer secret compared with `!==` | Constant-time comparison |
 | 4 | Checkout `?redirect=` | Button labelled with the merchant name could point to a phishing site | Only `https:` URLs, and the button shows the destination host |
+| 5 | Web | Pages could be framed, enabling clickjacking on the Subscribe button | `frame-ancestors 'none'`, `X-Frame-Options: DENY` and a restrictive CSP on every route |
+| 6 | Web | No transport or content-type hardening headers | HSTS, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `poweredByHeader: false` |
+| 7 | `/status` | Rendering per request would hit the RPC on every page view | Status is computed once per 20 s per instance; `/api/access` stays edge-cached |
+| 8 | CI | Workflows ran with the default token scope and an unpinned Solana installer | `permissions: contents: read`; Solana CLI pinned to `v4.2.2` |
+| 9 | Repository | No private reporting channel or dependency alerts | Private vulnerability reporting, Dependabot alerts and security updates, secret scanning with push protection, `.github/dependabot.yml` |
 
 ## Threat model and how each threat is handled
 
@@ -51,6 +62,16 @@ None found.
 | 4 | Keeper scans all subscriptions with `getProgramAccounts` | Fine for thousands; move to an indexer (Helius webhooks into Supabase) before scale |
 | 5 | Webhook dedupe is in-memory | Receivers must be idempotent on `event.id`; persistent outbox arrives with Supabase |
 | 6 | Keeper key is a hot wallet | It can only pay fees and trigger due charges; keep a small SOL balance and rotate if leaked |
+
+### Found in the Sep 26, 2026 re-review
+
+| # | Risk | Action |
+|---|------|--------|
+| 7 | The approval is shared, but the per-subscription budget is only computed off-chain. A subscription with `max_cycles = 0` and a short period (the program allows 60 s) can keep charging, within the terms the subscriber accepted, until it has used allowance that was sized for the wallet's other subscriptions | Before mainnet: store a per-subscription cap on-chain (for example `budget_remaining`, decreased by each charge and topped up by an explicit `extend`), and raise `MIN_PERIOD_SECS` to one day outside devnet |
+| 8 | `@solana/web3.js` 1.x (pulled in by wallet-adapter) carries moderate advisories through `jayson`, `uuid` and `stream-json` | Client-side only, the server routes use `@solana/kit`; no fixed version upstream yet. Dependabot tracks it; replace wallet-adapter with Wallet Standard via `@solana/kit` when practical |
+| 9 | The deployer key is the program upgrade authority and lives in a GitHub secret and a local file | Acceptable on devnet. Before mainnet: new keys, upgrade authority on a Squads multisig, deploy secrets removed from CI |
+| 10 | Public read APIs have no per-IP rate limit | Add a Vercel WAF rate-limit rule for `/api/access` and `/api/status` (e.g. 60/min per IP); keep `/api/actions` unlimited because Blink clients share proxy IPs |
+| 11 | The RPC key is visible in the client bundle because the dashboard reads the chain from the browser | Restrict it to the site's domain in the Helius dashboard; move dashboard reads behind an indexer API later |
 
 ## What looks good
 

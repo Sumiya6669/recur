@@ -21,6 +21,14 @@ on:
         type: boolean
         default: false
 
+# Least privilege: the job only reads the repo; deploy keys come from secrets on manual runs.
+permissions:
+  contents: read
+
+env:
+  # Pinned so a new Solana release can't change the build or the deploy tooling underneath us.
+  SOLANA_VERSION: v4.2.2
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -41,12 +49,12 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: sbf-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          key: sbf-${{ runner.os }}-${{ env.SOLANA_VERSION }}-${{ hashFiles('Cargo.lock') }}
 
       - name: Install Solana CLI
         run: |
           if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/solana" ]; then
-            sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+            sh -c "$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)"
           fi
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
 
