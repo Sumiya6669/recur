@@ -35,6 +35,7 @@ None found.
 | 7 | `/status` | Rendering per request would hit the RPC on every page view | Status is computed once per 20 s per instance; `/api/access` stays edge-cached |
 | 8 | CI | Workflows ran with the default token scope and an unpinned Solana installer | `permissions: contents: read`; Solana CLI pinned to `v4.2.2` |
 | 9 | Repository | No private reporting channel or dependency alerts | Private vulnerability reporting, Dependabot alerts and security updates, secret scanning with push protection, `.github/dependabot.yml` |
+| 10 | Program | Shared approval could be consumed by one subscription beyond the share sized for it | Per-subscription `budget_remaining` enforced in `charge`, `extend` signed by the subscriber |
 
 ## Threat model and how each threat is handled
 
@@ -67,7 +68,7 @@ None found.
 
 | # | Risk | Action |
 |---|------|--------|
-| 7 | The approval is shared, but the per-subscription budget is only computed off-chain. A subscription with `max_cycles = 0` and a short period (the program allows 60 s) can keep charging, within the terms the subscriber accepted, until it has used allowance that was sized for the wallet's other subscriptions | Before mainnet: store a per-subscription cap on-chain (for example `budget_remaining`, decreased by each charge and topped up by an explicit `extend`), and raise `MIN_PERIOD_SECS` to one day outside devnet |
+| 7 | ~~The approval is shared, but the per-subscription budget was only computed off-chain~~ **Fixed Sep 26, 2026:** each subscription stores `budget_remaining`; `charge` spends it and stops with `BudgetExhausted`, only the subscriber can `extend` it, and the approval is the exact sum of on-chain budgets (test: *each subscription stops at its own budget*) | Before mainnet, still consider raising `MIN_PERIOD_SECS` outside devnet |
 | 8 | `@solana/web3.js` 1.x (pulled in by wallet-adapter) carries moderate advisories through `jayson`, `uuid` and `stream-json` | Client-side only, the server routes use `@solana/kit`; no fixed version upstream yet. Dependabot tracks it; replace wallet-adapter with Wallet Standard via `@solana/kit` when practical |
 | 9 | The deployer key is the program upgrade authority and lives in a GitHub secret and a local file | Acceptable on devnet. Before mainnet: new keys, upgrade authority on a Squads multisig, deploy secrets removed from CI |
 | 10 | Public read APIs have no per-IP rate limit | Add a Vercel WAF rate-limit rule for `/api/access` and `/api/status` (e.g. 60/min per IP); keep `/api/actions` unlimited because Blink clients share proxy IPs |
