@@ -14,11 +14,20 @@ Done and verified:
 - `SECURITY.md` review, `MANUAL.md` (manual steps, Russian), `docs/pitch.md`, `docs/outreach.md`, `docs/webhooks.md`.
 - Pitch deck (15 slides) lives on claude.ai as an artifact; brackets like [N] are placeholders for real traction.
 
+Deployed (Sep 26, 2026):
+- GitHub https://github.com/Sumiya6669/recur, Vercel project `recur` → https://recur-tawny.vercel.app (push to main deploys).
+- Devnet program `Dtzj1BPFspDjfACbQXDZ1Hsx6CizeYRg9aa2Po1BAawA`, built and deployed by `.github/workflows/program.yml`
+  (no WSL on this machine; `gh workflow run program.yml -f deploy=true`). Upgrade authority = deployer
+  `CCgwNqrFFzVpow51oRsRrMBJ74K1rcPiZct1fCnEH9M1`. Keys live outside the repo in `C:\Users\1C\.recur-keys\`.
+- Seeded merchant "Recur Demo Club" `DZRGMfLzFMhK9FRNjhsZuBswtoXr11RFfohAMfnkviFt`: plans Pro monthly
+  `A1Q8KRPgfHixJZJMwX3sgkBCx1CK13hs9uRXZ2SpYjMf`, Weekly pass `G9awYy1eEKebZj29DYK9fYwaRvi3Ge7ayHCNe3yCm4YV`,
+  Live demo every 2 minutes `DwBEiTu7wzZ2pSeVmw17NkYC34SWVviDEGmp6c9J2qVA` (checkout: `/pay/<plan>`).
+- Keeper `EVp1Yv1spXGKNCuB2uxgC3MnfJZYGvkAwaD1vQCqv2Lc` runs via `/api/cron/charge` from an external cron.
+
 Not done yet (in priority order) — see HANDOFF.md:
-1. Push to GitHub, deploy `apps/web` to Vercel (Vercel MCP in `.mcp.json`), visual QA of the design in a browser.
-2. Deploy the program to devnet with the user's own program ID, seed plans, run the keeper on a schedule.
-3. Supabase (user creates a fresh account): webhook outbox with retries, payment history for the dashboard, Discord role gating example.
-4. First real merchants (docs/outreach.md), pitch video (docs/pitch.md).
+1. Checkout `/pay/...` with a real wallet; checklist from MANUAL.md section 7.
+2. Supabase (user creates a fresh account): webhook outbox with retries, payment history for the dashboard, Discord role gating example.
+3. First real merchants (docs/outreach.md), pitch video (docs/pitch.md).
 
 ## Layout
 

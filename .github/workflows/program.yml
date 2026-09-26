@@ -82,4 +82,4 @@ jobs:
             --url "$RPC" \
             --with-compute-unit-price 10000 \
             --max-sign-attempts 50
-          solana program show "$(solana address -k "$RUNNER_TEMP/program.json")" -u "$RPC"
+          solana program show "$(solana address -k "$RUNNER_TEMP/program.json")" -u "$RPC" -k "$RUNNER_TEMP/deployer.json"
