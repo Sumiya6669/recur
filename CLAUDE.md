@@ -23,6 +23,8 @@ Deployed (Sep 26, 2026):
   `A1Q8KRPgfHixJZJMwX3sgkBCx1CK13hs9uRXZ2SpYjMf`, Weekly pass `G9awYy1eEKebZj29DYK9fYwaRvi3Ge7ayHCNe3yCm4YV`,
   Live demo every 2 minutes `DwBEiTu7wzZ2pSeVmw17NkYC34SWVviDEGmp6c9J2qVA` (checkout: `/pay/<plan>`).
 - Keeper `EVp1Yv1spXGKNCuB2uxgC3MnfJZYGvkAwaD1vQCqv2Lc` runs via `/api/cron/charge` from an external cron.
+- UI in English, Russian and Kazakh (`apps/web/lib/i18n`, `en.ts` is the source of truth; locale in the `lang` cookie).
+- `/status` + `/api/status` for monitoring; CSP and hardening headers in `next.config.ts`; acceptance status in `docs/ACCEPTANCE.md`.
 
 Not done yet (in priority order) — see HANDOFF.md:
 1. Checkout `/pay/...` with a real wallet; checklist from MANUAL.md section 7.
