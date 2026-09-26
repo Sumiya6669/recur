@@ -67,9 +67,9 @@ The Solana CLI and Anchor toolchain need **WSL2 (Ubuntu)**: run `anchor build/de
 ## Invariants — do not break
 
 - Account layouts are decoded by byte offset in `packages/sdk/src/accounts.ts` (MERCHANT_SIZE 113, PLAN_SIZE 146,
-  SUBSCRIPTION_SIZE 233, memcmp offsets). Any change to program state structs must update these and the tests.
+  SUBSCRIPTION_SIZE 241 with `budget_remaining` appended after `bump` at offset 233, memcmp offsets). Any change to program state structs must update these and the tests.
 - Instruction discriminators are hardcoded in `program.ts` (sha256("global:<name>")[..8]). Recompute if an ix is renamed.
-- Error codes: append new variants at the end of `RecurError` so existing codes (6000…6011) keep their meaning; `apps/web/lib/errors.ts` maps them.
+- Error codes: append new variants at the end of `RecurError` so existing codes (6000…6012) keep their meaning; `apps/web/lib/errors.ts` maps them.
 - The program ID comes from `NEXT_PUBLIC_RECUR_PROGRAM_ID` / `RECUR_PROGRAM_ID`; the default in `program.ts` is a placeholder until `anchor keys sync`.
 - Allowance is always recomputed from on-chain state (`requiredAllowance`) — never trust the current delegated_amount.
 - Only classic SPL Token mints (USDC) are accepted by `create_plan` (Token-2022 rejected on purpose, see SECURITY.md).

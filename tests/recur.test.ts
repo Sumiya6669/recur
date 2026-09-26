@@ -17,6 +17,7 @@ import {
   findPlanPda, findSubscriptionPda, getCancelInstruction as cancelIx, getChargeInstruction as chargeIx,
   getCreatePlanInstruction as createPlanIx, getInitMerchantInstruction, getSetPlanActiveInstruction,
   getSubscribeInstruction as subscribeIx, getSubscriptionStatus, hasAccess, requiredAllowance,
+  getExtendInstruction, DISCRIMINATORS, u64le,
 } from "../packages/sdk/src/index.ts";
 
 const isActive = (s: ReturnType<typeof decodeSubscription>, t: bigint) => hasAccess(s, t);
@@ -73,11 +74,12 @@ const warp = (secs: bigint) => { const c = svm.getClock(); c.unixTimestamp += se
 const ata = async (owner: Address) =>
   (await findAssociatedTokenPda({ owner, mint, tokenProgram: TOKEN_PROGRAM_ADDRESS }))[0];
 
-const subscribeWithApproval = async (who: KeyPairSigner, plan: Address, whoAta: Address, allowance: bigint, maxCycles = 0n) => [
+// The budget defaults to the approval, so tests about approvals behave as before.
+const subscribeWithApproval = async (who: KeyPairSigner, plan: Address, whoAta: Address, allowance: bigint, maxCycles = 0n, budget = allowance) => [
   getApproveInstruction({ source: whoAta, delegate, owner: who, amount: allowance }),
   await subscribeIx({
     subscriber: who, merchant, plan, mint, subscriberTokenAccount: whoAta,
-    merchantTokenAccount: treasuryAta, tokenProgram: TOKEN_PROGRAM_ADDRESS, maxCycles,
+    merchantTokenAccount: treasuryAta, tokenProgram: TOKEN_PROGRAM_ADDRESS, maxCycles, budget,
   }),
 ];
 const charge = async (who: Address, plan: Address, whoAta: Address, to: Address = treasuryAta) =>
@@ -261,14 +263,48 @@ test("max_cycles: subscription completes after N payments, access lasts until th
   assert.equal(getSubscriptionStatus(s, now()), "lapsed");
 });
 
+test("each subscription stops at its own budget; only the subscriber can extend it", async () => {
+  const carol = await generateKeyPairSigner();
+  svm.airdrop(carol.address, lamports(1_000_000_000n));
+  const carolAta = await ata(carol.address);
+  await ok(payer, [
+    getCreateAssociatedTokenIdempotentInstruction({ payer, ata: carolAta, owner: carol.address, mint }),
+    getMintToInstruction({ mint, token: carolAta, mintAuthority: mintAuth, amount: USDC(100) }),
+  ]);
+  // a generous shared approval, but this subscription may only take two more payments
+  await ok(carol, await subscribeWithApproval(carol, plan1, carolAta, USDC(100), 0n, USDC(10)));
+  for (let i = 0; i < 2; i++) { warp(7n * DAY); await ok(payer, [await charge(carol.address, plan1, carolAta)]); }
+  assert.equal((await sub(plan1, carol.address))!.budgetRemaining, 0n);
+
+  warp(7n * DAY);
+  await fails(payer, [await charge(carol.address, plan1, carolAta)], "BudgetExhausted");
+  assert.equal(balance(carolAta), USDC(85), "the rest of the approval stays untouched");
+
+  // someone else can't raise carol's budget
+  const carolSub = await findSubscriptionPda(plan1, carol.address);
+  await fails(mallory, [{
+    programAddress: RECUR_PROGRAM_ID,
+    accounts: [{ address: mallory.address, role: 3, signer: mallory }, { address: carolSub, role: 1 }],
+    data: new Uint8Array([...DISCRIMINATORS.extend, ...u64le(USDC(50))]),
+  } as unknown as Instruction], "Constraint");
+
+  await ok(carol, [await getExtendInstruction({ subscriber: carol, plan: plan1, additional: USDC(10) })]);
+  assert.equal((await sub(plan1, carol.address))!.budgetRemaining, USDC(10));
+  await ok(payer, [await charge(carol.address, plan1, carolAta)]);
+  const s = (await sub(plan1, carol.address))!;
+  assert.equal(s.budgetRemaining, USDC(5));
+  assert.equal(s.cyclesPaid, 4n);
+  assert.equal(balance(carolAta), USDC(80));
+});
+
 test("requiredAllowance sums every subscription on the token account", async () => {
   const base = { mint, merchant, subscriber: alice.address, periodSecs: DAY, graceSecs: 0n, createdAt: 0n, lastChargedAt: 0n, nextChargeAt: 0n } as const;
   const subs = [
-    { ...base, address: plan0, plan: plan0, subscriberTokenAccount: aliceAta, amount: USDC(10), cyclesPaid: 1n, maxCycles: 0n },
-    { ...base, address: plan1, plan: plan1, subscriberTokenAccount: aliceAta, amount: USDC(5), cyclesPaid: 2n, maxCycles: 4n },
-    { ...base, address: merchant, plan: plan1, subscriberTokenAccount: malloryAta, amount: USDC(99), cyclesPaid: 1n, maxCycles: 0n },
+    { ...base, address: plan0, plan: plan0, subscriberTokenAccount: aliceAta, amount: USDC(10), cyclesPaid: 1n, maxCycles: 0n, budgetRemaining: USDC(120) },
+    { ...base, address: plan1, plan: plan1, subscriberTokenAccount: aliceAta, amount: USDC(5), cyclesPaid: 2n, maxCycles: 4n, budgetRemaining: USDC(10) },
+    { ...base, address: merchant, plan: plan1, subscriberTokenAccount: malloryAta, amount: USDC(99), cyclesPaid: 1n, maxCycles: 0n, budgetRemaining: USDC(1188) },
   ];
-  // 10*12 (unlimited -> 12 future) + 5*2 (4-2 remaining)
+  // the sum of the on-chain budgets on alice's token account
   assert.equal(requiredAllowance(subs, aliceAta), USDC(130));
   assert.equal(requiredAllowance(subs, aliceAta, { exclude: plan0 }), USDC(10));
   // new plan with no cap: first payment + 12 future

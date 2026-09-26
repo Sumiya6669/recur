@@ -46,12 +46,14 @@ export type SubscriptionAccount = {
   cyclesPaid: bigint;
   /** 0n = until cancelled */
   maxCycles: bigint;
+  /** Most this subscription may still collect; `charge` spends it, `extend` raises it. */
+  budgetRemaining: bigint;
 };
 
 // Byte layouts (Anchor, 8-byte discriminator first)
 export const MERCHANT_SIZE = 113;
 export const PLAN_SIZE = 146;
-export const SUBSCRIPTION_SIZE = 233;
+export const SUBSCRIPTION_SIZE = 241;
 export const OFFSETS = {
   plan: { merchant: 8 },
   subscription: { plan: 8, merchant: 40, subscriber: 72 },
@@ -111,6 +113,8 @@ export function decodeSubscription(address: Address, d: Uint8Array): Subscriptio
     nextChargeAt: v.getBigInt64(208, true),
     cyclesPaid: v.getBigUint64(216, true),
     maxCycles: v.getBigUint64(224, true),
+    // offset 232 is the bump; the budget was appended after it
+    budgetRemaining: v.getBigUint64(233, true),
   };
 }
 
@@ -242,7 +246,7 @@ export async function getPaymentHealth(s: SubscriptionAccount, token: TokenAccou
   if (!token) return "balance_low";
   const delegate = await findDelegatePda();
   if (token.delegate !== delegate) return "delegate_missing";
-  if (token.delegatedAmount < s.amount) return "allowance_low";
+  if (s.budgetRemaining < s.amount || token.delegatedAmount < s.amount) return "allowance_low";
   if (token.amount < s.amount) return "balance_low";
   return "ok";
 }

@@ -39,6 +39,7 @@ export const DISCRIMINATORS = {
   subscribe: [254, 28, 191, 138, 156, 179, 183, 53],
   charge: [26, 55, 197, 209, 93, 77, 242, 15],
   cancel: [232, 219, 223, 41, 219, 236, 220, 190],
+  extend: [228, 127, 0, 1, 227, 154, 54, 168],
   Merchant: [71, 235, 30, 40, 231, 21, 32, 64],
   Plan: [161, 231, 251, 119, 2, 12, 162, 2],
   Subscription: [64, 7, 26, 135, 102, 132, 98, 33],
@@ -203,6 +204,8 @@ export async function getSubscribeInstruction(p: {
   merchantTokenAccount: Address;
   tokenProgram: Address;
   maxCycles?: bigint;
+  /** Most the subscription may collect after the first payment. */
+  budget: bigint;
 }): Promise<Instruction> {
   return {
     programAddress: RECUR_PROGRAM_ID,
@@ -218,7 +221,7 @@ export async function getSubscribeInstruction(p: {
       r(p.tokenProgram),
       r(SYSTEM_PROGRAM_ID),
     ],
-    data: data(DISCRIMINATORS.subscribe, u64le(p.maxCycles ?? 0n)),
+    data: data(DISCRIMINATORS.subscribe, u64le(p.maxCycles ?? 0n), u64le(p.budget)),
   };
 }
 
@@ -244,6 +247,19 @@ export async function getChargeInstruction(p: {
       r(p.tokenProgram),
     ],
     data: data(DISCRIMINATORS.charge),
+  };
+}
+
+/** Raise a subscription's budget. Signed by the subscriber. */
+export async function getExtendInstruction(p: {
+  subscriber: TransactionSigner;
+  plan: Address;
+  additional: bigint;
+}): Promise<Instruction> {
+  return {
+    programAddress: RECUR_PROGRAM_ID,
+    accounts: [rs(p.subscriber), w(await findSubscriptionPda(p.plan, p.subscriber.address))],
+    data: data(DISCRIMINATORS.extend, u64le(p.additional)),
   };
 }
 

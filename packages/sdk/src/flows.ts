@@ -38,6 +38,7 @@ import {
   findMerchantPda,
   getCancelInstruction,
   getCreatePlanInstruction,
+  getExtendInstruction,
   getSubscribeInstruction,
 } from "./program.ts";
 
@@ -46,16 +47,22 @@ const min = (a: bigint, b: bigint) => (a < b ? a : b);
 
 // ------------------------------------------------------------------ allowance math
 
-/** Future payments an approval should cover for an existing subscription. */
-export function budgetCycles(s: Pick<SubscriptionAccount, "maxCycles" | "cyclesPaid">) {
+/** Payments a new budget covers after the first one: the remaining cycles, at most DEFAULT_BUDGET_CYCLES. */
+export function futureBudgetCycles(maxCycles: bigint, cyclesPaid = 1n) {
+  if (maxCycles === 0n) return DEFAULT_BUDGET_CYCLES;
+  return maxCycles > cyclesPaid ? min(maxCycles - cyclesPaid, DEFAULT_BUDGET_CYCLES) : 0n;
+}
+
+/** Payments this subscription can still collect with its on-chain budget. */
+export function budgetCycles(s: Pick<SubscriptionAccount, "maxCycles" | "cyclesPaid" | "budgetRemaining" | "amount">) {
   if (isCompleted(s)) return 0n;
-  return s.maxCycles === 0n ? DEFAULT_BUDGET_CYCLES : min(s.maxCycles - s.cyclesPaid, DEFAULT_BUDGET_CYCLES);
+  return s.budgetRemaining / s.amount;
 }
 
 /**
  * SPL Token has a single delegate per token account, shared by every Recur subscription on it.
- * The approval must therefore cover the sum of all of them. We recompute it from on-chain
- * state every time instead of trusting the current `delegated_amount`.
+ * The approval must therefore cover the sum of their on-chain budgets. We recompute it from
+ * chain state every time instead of trusting the current `delegated_amount`.
  */
 export function requiredAllowance(
   subs: SubscriptionAccount[],
@@ -65,13 +72,11 @@ export function requiredAllowance(
   let total = 0n;
   for (const s of subs) {
     if (s.subscriberTokenAccount !== tokenAccount || s.address === opts.exclude) continue;
-    total += s.amount * budgetCycles(s);
+    if (!isCompleted(s)) total += s.budgetRemaining;
   }
   if (opts.add) {
     // first payment happens immediately inside `subscribe`, then the future budget
-    const cycles =
-      opts.add.maxCycles === 0n ? 1n + DEFAULT_BUDGET_CYCLES : min(opts.add.maxCycles, 1n + DEFAULT_BUDGET_CYCLES);
-    total += opts.add.amount * cycles;
+    total += opts.add.amount * (1n + futureBudgetCycles(opts.add.maxCycles));
   }
   return total;
 }
@@ -142,6 +147,7 @@ export async function buildSubscribeInstructions(p: {
       merchantTokenAccount: merchantAta,
       tokenProgram,
       maxCycles,
+      budget: p.plan.amount * futureBudgetCycles(maxCycles),
     }),
   ];
   return { instructions, allowance, subscriberAta, merchantAta };
@@ -169,12 +175,24 @@ export async function buildCancelInstructions(p: { rpc: AnyRpc; subscriber: Tran
   ];
 }
 
-/** Re-approve after another app overwrote the delegate, or to extend an exhausted approval. */
+/**
+ * Keep every subscription on this wallet collectable: top up any budget that can't cover the next
+ * payment (by up to DEFAULT_BUDGET_CYCLES payments) and re-approve the exact total. Also repairs an
+ * approval that another app replaced.
+ */
 export async function buildRestoreInstructions(p: { rpc: AnyRpc; subscriber: TransactionSigner }) {
   const all = await fetchSubscriptionsBySubscriber(p.rpc, p.subscriber.address);
-  const byTokenAccount = new Map<Address, SubscriptionAccount[]>();
-  for (const s of all) byTokenAccount.set(s.subscriberTokenAccount, [...(byTokenAccount.get(s.subscriberTokenAccount) ?? []), s]);
   const ixs: Instruction[] = [];
+  const topped = all.map((s) => {
+    if (isCompleted(s) || s.budgetRemaining >= s.amount) return s;
+    const add = s.amount * futureBudgetCycles(s.maxCycles, s.cyclesPaid);
+    return add > 0n ? { ...s, budgetRemaining: s.budgetRemaining + add, extendBy: add } : s;
+  });
+  for (const s of topped) {
+    if ("extendBy" in s) ixs.push(await getExtendInstruction({ subscriber: p.subscriber, plan: s.plan, additional: s.extendBy as bigint }));
+  }
+  const byTokenAccount = new Map<Address, SubscriptionAccount[]>();
+  for (const s of topped) byTokenAccount.set(s.subscriberTokenAccount, [...(byTokenAccount.get(s.subscriberTokenAccount) ?? []), s]);
   for (const [tokenAccount, subs] of byTokenAccount) {
     const tokenProgram = await tokenProgramOf(p.rpc, subs[0].mint);
     ixs.push(
@@ -187,6 +205,28 @@ export async function buildRestoreInstructions(p: { rpc: AnyRpc; subscriber: Tra
     );
   }
   return ixs;
+}
+
+/** Let one subscription collect `payments` more times: raises its budget and the shared approval together. */
+export async function buildExtendInstructions(p: {
+  rpc: AnyRpc;
+  subscriber: TransactionSigner;
+  subscription: SubscriptionAccount;
+  payments: bigint;
+}) {
+  const additional = p.subscription.amount * p.payments;
+  const all = await fetchSubscriptionsBySubscriber(p.rpc, p.subscriber.address);
+  const tokenProgram = await tokenProgramOf(p.rpc, p.subscription.mint);
+  const allowance = requiredAllowance(all, p.subscription.subscriberTokenAccount) + additional;
+  return [
+    await getExtendInstruction({ subscriber: p.subscriber, plan: p.subscription.plan, additional }),
+    await allowanceInstruction({
+      owner: p.subscriber,
+      tokenAccount: p.subscription.subscriberTokenAccount,
+      tokenProgram,
+      amount: allowance,
+    }),
+  ];
 }
 
 export async function buildCreatePlanInstructions(p: {

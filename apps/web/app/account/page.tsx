@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { address } from "@solana/kit";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
-  buildCancelInstructions, buildRestoreInstructions, decodeMerchant, decodePlan, decodeTokenAccount,
+  budgetCycles, buildCancelInstructions, buildRestoreInstructions, decodeMerchant, decodePlan, decodeTokenAccount,
   fetchMultipleAccountBytes, fetchSubscriptionsBySubscriber, getPaymentHealth, getSubscriptionStatus, noopSigner,
   type PaymentHealth, type SubscriptionAccount,
 } from "@recur/sdk";
@@ -119,6 +119,7 @@ export default function Account() {
                         <div className="text-[13px] text-dim">
                           {status === "completed" ? a.allPaid : status === "lapsed" ? a.pausedMissed : a.nextPayment(relative(s.nextChargeAt, undefined, locale), dateTime(s.nextChargeAt, locale))}
                           {s.maxCycles > 0n && `. ${a.cyclesPaid(s.cyclesPaid, s.maxCycles)}`}
+                          {status !== "completed" && status !== "lapsed" && `. ${a.covered(budgetCycles(s))}`}
                         </div>
                       </div>
                     </div>

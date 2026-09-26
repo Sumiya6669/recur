@@ -48,7 +48,8 @@ export function demoData(nowSecs = Math.floor(Date.now() / 1000)) {
       subs.push({
         address: fakeAddr(rand), plan: p.address, merchant: merchant.address, subscriber: fakeAddr(rand),
         subscriberTokenAccount: fakeAddr(rand), mint, amount: p.amount, periodSecs: p.periodSecs, graceSecs: p.graceSecs,
-        createdAt: created, lastChargedAt: next - p.periodSecs, nextChargeAt: next, cyclesPaid: cycles, maxCycles: 0n, health,
+        createdAt: created, lastChargedAt: next - p.periodSecs, nextChargeAt: next, cyclesPaid: cycles, maxCycles: 0n,
+        budgetRemaining: health === "allowance_low" ? 0n : p.amount * 6n, health,
       });
     }
   }

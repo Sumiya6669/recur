@@ -11,6 +11,11 @@
 //!    trigger it once a period is due. Funds go only to the merchant's settlement account.
 //! 4. `cancel` can be called by the subscriber or the merchant at any time.
 //!
+//! Each subscription also carries its own `budget_remaining`: the most it may still collect. The
+//! approval on the token account is shared by every subscription on it, so without a per-subscription
+//! budget a short-period plan could use up allowance meant for the wallet's other subscriptions.
+//! `charge` spends the budget; only the subscriber can raise it with `extend`.
+//!
 //! A subscription is "active" off-chain when `now < next_charge_at + grace_secs`.
 //! A failed charge (no funds, revoked approval) simply leaves the account unpaid, and it
 //! lapses after the grace period. No extra instruction is needed.
@@ -121,7 +126,9 @@ pub mod recur {
     /// Subscribe and pay the first period. The client must put an SPL `approve`
     /// (delegate = delegate PDA) before this instruction in the same transaction.
     /// `max_cycles` caps the total number of payments (0 = until cancelled).
-    pub fn subscribe(ctx: Context<Subscribe>, max_cycles: u64) -> Result<()> {
+    /// `budget` is the most this subscription may collect after the first payment; the
+    /// subscriber raises it later with `extend`.
+    pub fn subscribe(ctx: Context<Subscribe>, max_cycles: u64, budget: u64) -> Result<()> {
         let plan = &ctx.accounts.plan;
         require!(plan.active, RecurError::PlanInactive);
 
@@ -143,6 +150,7 @@ pub mod recur {
         sub.cycles_paid = 1;
         sub.max_cycles = max_cycles;
         sub.bump = ctx.bumps.subscription;
+        sub.budget_remaining = budget;
 
         let amount = sub.amount;
         let delegate_bump = ctx.bumps.delegate;
@@ -186,6 +194,10 @@ pub mod recur {
             RecurError::SubscriptionCompleted
         );
         require!(now >= sub.next_charge_at, RecurError::NotDue);
+        sub.budget_remaining = sub
+            .budget_remaining
+            .checked_sub(sub.amount)
+            .ok_or(RecurError::BudgetExhausted)?;
 
         // Late but within grace: keep the original schedule.
         // Lapsed beyond grace: start a fresh period from now (no back-billing).
@@ -222,6 +234,23 @@ pub mod recur {
             amount,
             cycle: sub.cycles_paid,
             next_charge_at: sub.next_charge_at,
+        });
+        Ok(())
+    }
+
+    /// Raise this subscription's budget. Only the subscriber can do it; the client should raise
+    /// the token approval by the same amount in the same transaction.
+    pub fn extend(ctx: Context<Extend>, additional: u64) -> Result<()> {
+        let sub = &mut ctx.accounts.subscription;
+        sub.budget_remaining = sub
+            .budget_remaining
+            .checked_add(additional)
+            .ok_or(RecurError::MathOverflow)?;
+        emit!(BudgetExtended {
+            subscription: sub.key(),
+            subscriber: sub.subscriber,
+            additional,
+            budget_remaining: sub.budget_remaining,
         });
         Ok(())
     }
@@ -406,6 +435,18 @@ pub struct Charge<'info> {
 }
 
 #[derive(Accounts)]
+pub struct Extend<'info> {
+    pub subscriber: Signer<'info>,
+    #[account(
+        mut,
+        has_one = subscriber,
+        seeds = [SUBSCRIPTION_SEED, subscription.plan.as_ref(), subscriber.key().as_ref()],
+        bump = subscription.bump,
+    )]
+    pub subscription: Account<'info, Subscription>,
+}
+
+#[derive(Accounts)]
 pub struct Cancel<'info> {
     pub signer: Signer<'info>,
     pub merchant: Account<'info, Merchant>,
@@ -473,6 +514,8 @@ pub struct Subscription {
     /// 0 = until cancelled.
     pub max_cycles: u64,
     pub bump: u8,
+    /// Most this subscription may still collect. Appended last so earlier field offsets stay put.
+    pub budget_remaining: u64,
 }
 
 // ---------------------------------------------------------------------------
@@ -505,6 +548,14 @@ pub struct PaymentCollected {
     pub amount: u64,
     pub cycle: u64,
     pub next_charge_at: i64,
+}
+
+#[event]
+pub struct BudgetExtended {
+    pub subscription: Pubkey,
+    pub subscriber: Pubkey,
+    pub additional: u64,
+    pub budget_remaining: u64,
 }
 
 #[event]
@@ -541,4 +592,6 @@ pub enum RecurError {
     SubscriptionCompleted,
     #[msg("Only classic SPL Token mints (e.g. USDC) are supported")]
     UnsupportedMint,
+    #[msg("This subscription's budget is used up; the subscriber must extend it")]
+    BudgetExhausted,
 }
