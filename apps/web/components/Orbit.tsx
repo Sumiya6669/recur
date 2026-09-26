@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useT } from "@/lib/i18n/client";
 
 export type OrbitHealth = "ok" | "risk" | "failed";
 export type OrbitItem = {
@@ -52,12 +53,16 @@ export function Orbit({
   lanes: string[];
   windowSecs?: number;
   children?: ReactNode;
-  /** simulate time passing: `speed` simulated seconds per real second */
-  live?: { speed: number; onCharge?: (item: OrbitItem) => void };
+  /**
+   * simulate time passing: `speed` simulated seconds per real second. `startElapsed` resumes a saved
+   * clock (read once on mount); `elapsedRef` receives the current simulated time so callers can save it.
+   */
+  live?: { speed: number; onCharge?: (item: OrbitItem) => void; startElapsed?: number; elapsedRef?: { current: number } };
   entrance?: boolean;
   className?: string;
 }) {
-  const [elapsed, setElapsed] = useState(0);
+  const { t: tr } = useT();
+  const [elapsed, setElapsed] = useState(() => live?.startElapsed ?? 0);
   const [pulses, setPulses] = useState<{ key: number; lane: number; color: string }[]>([]);
   const [hover, setHover] = useState<(OrbitItem & { x: number; y: number }) | null>(null);
   const prevT = useRef(new Map<string, number>());
@@ -101,6 +106,7 @@ export function Orbit({
   // Detect wrap-arounds (= a charge happened) in live mode
   useEffect(() => {
     if (!live) return;
+    if (live.elapsedRef) live.elapsedRef.current = elapsed;
     const fired: OrbitItem[] = [];
     for (const it of placed) {
       const prev = prevT.current.get(it.id);
@@ -114,7 +120,7 @@ export function Orbit({
       ]);
       fired.forEach((f) => onCharge.current?.(f));
     }
-  }, [placed, live, windowSecs]);
+  }, [placed, live, windowSecs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ticks = useMemo(() => {
     const days = Math.round(windowSecs / 86400);
@@ -141,7 +147,7 @@ export function Orbit({
   return (
     <div className={`relative aspect-square w-full select-none ${className}`}>
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full overflow-visible" role="img"
-        aria-label={`Billing orbit: ${placed.length} upcoming charges in the next ${Math.round(windowSecs / 86400)} days`}>
+        aria-label={tr.orbit.aria(placed.length, Math.round(windowSecs / 86400))}>
         <defs>
           <radialGradient id="core" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#12306a" stopOpacity="0.55" />
@@ -168,7 +174,7 @@ export function Orbit({
           return (
             <text key={`l${t.d}`} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle"
               className="fill-dim text-[13px] tabular" style={{ fontFamily: "var(--font-sans)" }}>
-              {t.d}d
+              {tr.common.daysShort(t.d)}
             </text>
           );
         })}
@@ -190,7 +196,7 @@ export function Orbit({
         <circle cx={now.x} cy={now.y} r={3.5} fill="var(--color-fg)" />
         <text x={now.x} y={now.y - 14} textAnchor="middle" className="fill-fg text-[13px] font-medium"
           style={{ fontFamily: "var(--font-sans)" }}>
-          now
+          {tr.common.now}
         </text>
 
         {/* charge pulses (live) */}
@@ -245,12 +251,13 @@ export function Orbit({
 }
 
 export function OrbitLegend({ lanes }: { lanes: string[] }) {
+  const { t } = useT();
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-mute">
-      <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-usdc" />Will charge</span>
-      <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-amber" />At risk</span>
-      <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-coral" />Overdue</span>
-      <span className="text-dim">Orbits from outside in: {lanes.join(", ")}</span>
+      <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-usdc" />{t.orbit.willCharge}</span>
+      <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-amber" />{t.orbit.atRisk}</span>
+      <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-coral" />{t.orbit.overdue}</span>
+      <span className="text-dim">{t.orbit.lanes(lanes.join(", "))}</span>
     </div>
   );
 }

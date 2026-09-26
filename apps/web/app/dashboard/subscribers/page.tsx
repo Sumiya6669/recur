@@ -4,26 +4,29 @@ import { address } from "@solana/kit";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { getCancelInstruction, noopSigner } from "@recur/sdk";
 import { useDashboard } from "@/components/dashboard/context";
-import { HEALTH_LABEL, StatusPill } from "@/components/StatusPill";
+import { StatusPill } from "@/components/StatusPill";
 import { dateTime, period, relative, short, usdc } from "@/lib/format";
 import { explorerAddr, explorerTx } from "@/lib/config";
 import { signAndSend } from "@/lib/send";
 import { explain } from "@/lib/errors";
 import { useUI } from "@/app/providers";
 import type { Row } from "@/lib/metrics";
+import { useT } from "@/lib/i18n/client";
 
 const FILTERS = [
-  { id: "all", label: "All", test: (_: Row) => true },
-  { id: "active", label: "Active", test: (r: Row) => r.status === "active" },
-  { id: "attention", label: "Needs attention", test: (r: Row) => r.atRisk },
-  { id: "past_due", label: "Past due", test: (r: Row) => r.status === "past_due" },
-  { id: "lapsed", label: "Lapsed", test: (r: Row) => r.status === "lapsed" },
+  { id: "all", test: (_: Row) => true },
+  { id: "active", test: (r: Row) => r.status === "active" },
+  { id: "attention", test: (r: Row) => r.atRisk },
+  { id: "past_due", test: (r: Row) => r.status === "past_due" },
+  { id: "lapsed", test: (r: Row) => r.status === "lapsed" },
 ] as const;
 
 export default function Subscribers() {
   const { ready, demo, reload } = useDashboard();
   const wallet = useWallet();
   const { toast } = useUI();
+  const { t, locale } = useT();
+  const s = t.dash.subs;
   const r = ready!;
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [plan, setPlan] = useState("all");
@@ -49,18 +52,18 @@ export default function Subscribers() {
   }
 
   async function cancel(x: Row) {
-    if (demo) return toast({ tone: "info", title: "Sample data", body: "Connect your wallet to manage real subscribers." });
-    if (!confirm(`Cancel ${short(x.subscriber)}'s ${x.planName} subscription? They won't be charged again.`)) return;
+    if (demo) return toast({ tone: "info", title: t.dash.sampleToast, body: t.dash.sampleManageSubs });
+    if (!confirm(s.confirmCancel(short(x.subscriber), x.planName))) return;
     setBusy(x.address);
     try {
       const sig = await signAndSend(wallet, [getCancelInstruction({
         signer: noopSigner(address(wallet.publicKey!.toBase58())),
         merchant: r.merchant.address, plan: x.plan, subscription: x.address, subscriber: x.subscriber,
       })]);
-      toast({ tone: "ok", title: "Subscription cancelled", href: explorerTx(sig) });
+      toast({ tone: "ok", title: s.cancelled, href: explorerTx(sig) });
       await reload();
     } catch (e) {
-      toast({ tone: "error", title: "Couldn't cancel", body: explain(e) });
+      toast({ tone: "error", title: s.cancelFailed, body: explain(e, locale) });
     } finally { setBusy(null); }
   }
 
@@ -68,10 +71,10 @@ export default function Subscribers() {
     <div className="mx-auto max-w-[1180px]">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="display text-[clamp(30px,4vw,44px)] font-semibold">Subscribers</h1>
-          <p className="mt-1 text-[15px] text-mute">{r.metrics.active} with access, {r.metrics.rows.length} in total</p>
+          <h1 className="display text-[clamp(30px,4vw,44px)] font-semibold">{s.title}</h1>
+          <p className="mt-1 text-[15px] text-mute">{s.summary(r.metrics.active, r.metrics.rows.length)}</p>
         </div>
-        <button onClick={exportCsv} className="rounded-full border border-line px-4 py-2 text-[14px] hover:border-mute">Export CSV</button>
+        <button onClick={exportCsv} className="rounded-full border border-line px-4 py-2 text-[14px] hover:border-mute">{s.exportCsv}</button>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -80,17 +83,17 @@ export default function Subscribers() {
           return (
             <button key={f.id} onClick={() => setFilter(f.id)} aria-pressed={filter === f.id}
               className={`rounded-full px-3.5 py-1.5 text-[13px] transition ${filter === f.id ? "bg-fg text-ink" : "border border-line text-mute hover:text-fg"}`}>
-              {f.label} <span className="tabular opacity-60">{n}</span>
+              {s.filters[f.id]} <span className="tabular opacity-60">{n}</span>
             </button>
           );
         })}
         <div className="ml-auto flex w-full gap-2 sm:w-auto">
           <select value={plan} onChange={(e) => setPlan(e.target.value)}
             className="rounded-xl border border-line bg-deep px-3 py-2 text-[13px] outline-none focus:border-usdc">
-            <option value="all">All plans</option>
+            <option value="all">{s.allPlans}</option>
             {r.plans.map((p) => <option key={p.address} value={p.address}>{p.name}</option>)}
           </select>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search wallet"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={s.search}
             className="min-w-0 flex-1 rounded-xl border border-line bg-deep px-3 py-2 text-[13px] outline-none placeholder:text-dim focus:border-usdc sm:w-56" />
         </div>
       </div>
@@ -99,12 +102,12 @@ export default function Subscribers() {
         <table className="w-full min-w-[860px] text-left text-[14px]">
           <thead className="bg-deep/70 text-[13px] text-mute">
             <tr>
-              <th className="px-4 py-3 font-medium">Subscriber</th>
-              <th className="px-4 py-3 font-medium">Plan</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Next payment</th>
-              <th className="px-4 py-3 text-right font-medium">Paid</th>
-              <th className="px-4 py-3 font-medium">Wallet</th>
+              <th className="px-4 py-3 font-medium">{s.cols.subscriber}</th>
+              <th className="px-4 py-3 font-medium">{s.cols.plan}</th>
+              <th className="px-4 py-3 font-medium">{s.cols.status}</th>
+              <th className="px-4 py-3 font-medium">{s.cols.next}</th>
+              <th className="px-4 py-3 text-right font-medium">{s.cols.paid}</th>
+              <th className="px-4 py-3 font-medium">{s.cols.wallet}</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -116,31 +119,31 @@ export default function Subscribers() {
                 </td>
                 <td className="px-4 py-3">
                   <div>{x.planName}</div>
-                  <div className="text-[12px] text-dim">{usdc(x.amount)} USDC {period(x.periodSecs).adverb}</div>
+                  <div className="text-[12px] text-dim">{usdc(x.amount)} USDC {period(x.periodSecs, locale).adverb}</div>
                 </td>
                 <td className="px-4 py-3"><StatusPill status={x.status} /></td>
                 <td className="px-4 py-3">
-                  <div title={dateTime(x.nextChargeAt)}>{x.status === "completed" ? "No more payments" : relative(x.nextChargeAt, nowN)}</div>
-                  <div className="text-[12px] text-dim">{dateTime(x.nextChargeAt)}</div>
+                  <div title={dateTime(x.nextChargeAt, locale)}>{x.status === "completed" ? s.noMore : relative(x.nextChargeAt, nowN, locale)}</div>
+                  <div className="text-[12px] text-dim">{dateTime(x.nextChargeAt, locale)}</div>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="tabular">{usdc(x.amount * x.cyclesPaid)}</div>
-                  <div className="text-[12px] text-dim">{x.cyclesPaid.toString()} payment{x.cyclesPaid === 1n ? "" : "s"}</div>
+                  <div className="text-[12px] text-dim">{s.payments(x.cyclesPaid)}</div>
                 </td>
-                <td className={`px-4 py-3 text-[13px] ${x.health === "ok" ? "text-mute" : "text-amber"}`}>{HEALTH_LABEL[x.health]}</td>
+                <td className={`px-4 py-3 text-[13px] ${x.health === "ok" ? "text-mute" : "text-amber"}`}>{t.health[x.health]}</td>
                 <td className="px-4 py-3 text-right">
                   <button onClick={() => cancel(x)} disabled={busy === x.address}
                     className="rounded-full px-3 py-1 text-[13px] text-dim hover:bg-raise hover:text-coral disabled:opacity-50">
-                    {busy === x.address ? "Cancelling…" : "Cancel"}
+                    {busy === x.address ? t.common.cancelling : t.common.cancel}
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {rows.length === 0 && <p className="p-8 text-center text-[14px] text-mute">No subscribers match these filters.</p>}
+        {rows.length === 0 && <p className="p-8 text-center text-[14px] text-mute">{s.empty}</p>}
       </div>
-      {rows.length > 300 && <p className="mt-3 text-[13px] text-dim">Showing the first 300. Export CSV for the full list.</p>}
+      {rows.length > 300 && <p className="mt-3 text-[13px] text-dim">{s.first300}</p>}
     </div>
   );
 }

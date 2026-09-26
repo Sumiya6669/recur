@@ -18,6 +18,8 @@ import { explorerTx, rpc } from "@/lib/config";
 import { dateTime, period, usdc } from "@/lib/format";
 import { signAndSend } from "@/lib/send";
 import { explain } from "@/lib/errors";
+import { useT } from "@/lib/i18n/client";
+import { LangSwitch } from "@/components/LangSwitch";
 
 type Load = { state: "loading" } | { state: "missing" } | { state: "ok"; plan: PlanAccount; merchant: MerchantAccount };
 type WalletInfo = { balance: bigint; allowance: bigint; already: boolean };
@@ -31,6 +33,8 @@ function Checkout() {
   const maxCycles = BigInt(Math.max(0, Number(search.get("cycles") ?? 0) | 0));
   const wallet = useWallet();
   const { openConnect, toast } = useUI();
+  const { t, locale } = useT();
+  const c = t.pay;
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [info, setInfo] = useState<WalletInfo | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,24 +73,24 @@ function Checkout() {
     const now = Date.now() / 1000;
     return Array.from({ length: payments }, (_, k) => ({
       id: String(k), lane: 0, secsUntil: k * p, amount: Math.min(40, Number(load.plan.amount) / 1e6), health: "ok" as const,
-      label: k === 0 ? "Today" : `Payment ${k + 1}`, detail: k === 0 ? "Paid when you subscribe" : dateTime(now + k * p),
+      label: k === 0 ? c.today : c.paymentN(k + 1), detail: k === 0 ? c.paidOnSubscribe : dateTime(now + k * p, locale),
     }));
-  }, [load, payments]);
+  }, [load, payments, c, locale]);
 
   if (load.state === "loading") return <Frame><div className="mx-auto mt-24 w-48 opacity-60"><Orbit items={[]} lanes={[""]} /></div></Frame>;
   if (load.state === "missing") {
     return (
       <Frame>
         <div className="mx-auto mt-24 max-w-md text-center">
-          <h1 className="display text-[34px] font-semibold">This checkout link doesn't work</h1>
-          <p className="mt-3 text-mute">The plan doesn't exist on this network. Ask the seller for a new link.</p>
+          <h1 className="display text-[34px] font-semibold">{c.brokenTitle}</h1>
+          <p className="mt-3 text-mute">{c.brokenBody}</p>
         </div>
       </Frame>
     );
   }
 
   const { plan, merchant } = load;
-  const per = period(plan.periodSecs);
+  const per = period(plan.periodSecs, locale);
   const enough = info ? info.balance >= plan.amount : true;
 
   async function subscribe() {
@@ -98,7 +102,7 @@ function Checkout() {
       const sig = await signAndSend(wallet, instructions);
       setDone(sig);
     } catch (e) {
-      toast({ tone: "error", title: "Subscription didn't go through", body: explain(e) });
+      toast({ tone: "error", title: c.failed, body: explain(e, locale) });
       refreshInfo().catch(() => {});
     } finally { setBusy(false); }
   }
@@ -112,7 +116,7 @@ function Checkout() {
             <div className="mt-2 text-[14px] text-mute">USDC {per.adverb}</div>
           </Orbit>
           <p className="mt-2 text-center text-[13px] text-dim">
-            {maxCycles > 0n ? `${maxCycles} payments in total` : `Your approval covers the first ${payments} payments. Extend it anytime.`}
+            {maxCycles > 0n ? c.totalPayments(maxCycles) : c.approvalCovers(payments)}
           </p>
         </div>
 
@@ -124,54 +128,52 @@ function Checkout() {
             <div className="mt-6">
               <div className="flex items-center gap-3">
                 <span className="grid size-9 place-items-center rounded-full bg-usdc text-white">✓</span>
-                <span className="text-[18px] font-semibold">You're subscribed</span>
+                <span className="text-[18px] font-semibold">{c.subscribed}</span>
               </div>
               <p className="mt-3 text-[15px] leading-relaxed text-mute">
-                {usdc(plan.amount)} USDC was paid. The next payment is on {dateTime(Date.now() / 1000 + Number(plan.periodSecs))}.
-                Manage or cancel anytime from your subscriptions page.
+                {c.paidNext(usdc(plan.amount), dateTime(Date.now() / 1000 + Number(plan.periodSecs), locale))}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 {redirectUrl && (
-                  <a href={redirectUrl.href} rel="noreferrer" className="rounded-full bg-usdc px-5 py-2.5 text-[14px] font-semibold text-white">Continue to {redirectUrl.host}</a>
+                  <a href={redirectUrl.href} rel="noreferrer" className="rounded-full bg-usdc px-5 py-2.5 text-[14px] font-semibold text-white">{c.continueTo(redirectUrl.host)}</a>
                 )}
-                <Link href="/account" className="rounded-full border border-line px-5 py-2.5 text-[14px] hover:border-mute">My subscriptions</Link>
-                <a href={explorerTx(done)} target="_blank" rel="noreferrer" className="rounded-full px-3 py-2.5 text-[14px] text-mute hover:text-fg">Receipt on Explorer</a>
+                <Link href="/account" className="rounded-full border border-line px-5 py-2.5 text-[14px] hover:border-mute">{t.common.mySubscriptions}</Link>
+                <a href={explorerTx(done)} target="_blank" rel="noreferrer" className="rounded-full px-3 py-2.5 text-[14px] text-mute hover:text-fg">{c.receipt}</a>
               </div>
             </div>
           ) : (
             <>
               <dl className="mt-6 divide-y divide-line border-y border-line text-[14px]">
-                <div className="flex justify-between py-3"><dt className="text-mute">Due today</dt><dd className="tabular font-medium">{usdc(plan.amount)} USDC</dd></div>
-                <div className="flex justify-between py-3"><dt className="text-mute">Then</dt><dd className="tabular">{usdc(plan.amount)} USDC {per.adverb}</dd></div>
-                <div className="flex justify-between gap-4 py-3"><dt className="text-mute">If a payment is missed</dt><dd className="text-right">{plan.graceSecs ? `Access continues for ${period(plan.graceSecs).span}` : "Access pauses until it is paid"}</dd></div>
+                <div className="flex justify-between py-3"><dt className="text-mute">{c.dueToday}</dt><dd className="tabular font-medium">{usdc(plan.amount)} USDC</dd></div>
+                <div className="flex justify-between py-3"><dt className="text-mute">{c.then}</dt><dd className="tabular">{usdc(plan.amount)} USDC {per.adverb}</dd></div>
+                <div className="flex justify-between gap-4 py-3"><dt className="text-mute">{c.ifMissed}</dt><dd className="text-right">{plan.graceSecs ? c.graceContinues(period(plan.graceSecs, locale).spanFor) : c.gracePauses}</dd></div>
               </dl>
 
               {info && (
                 <p className="mt-4 text-[13px] leading-relaxed text-dim">
-                  Your wallet approves Recur to collect up to <span className="text-fg">{usdc(info.allowance)} USDC</span> across all your
-                  Recur subscriptions. Funds stay in your wallet until each payment is due, and only this plan's price can be taken each period.
+                  {c.approvalNote(usdc(info.allowance))}
                 </p>
               )}
 
               <div className="mt-6">
                 {!plan.active ? (
-                  <p className="rounded-2xl border border-line p-4 text-[14px] text-mute">This plan isn't taking new subscribers right now.</p>
+                  <p className="rounded-2xl border border-line p-4 text-[14px] text-mute">{c.notTaking}</p>
                 ) : !who ? (
-                  <button onClick={openConnect} className="w-full rounded-full bg-fg py-3.5 text-[15px] font-semibold text-ink hover:bg-white">Connect wallet to subscribe</button>
+                  <button onClick={openConnect} className="w-full rounded-full bg-fg py-3.5 text-[15px] font-semibold text-ink hover:bg-white">{c.connectToSubscribe}</button>
                 ) : info?.already ? (
-                  <Link href="/account" className="block w-full rounded-full border border-line py-3.5 text-center text-[15px] hover:border-mute">You're already subscribed. Manage it</Link>
+                  <Link href="/account" className="block w-full rounded-full border border-line py-3.5 text-center text-[15px] hover:border-mute">{c.already}</Link>
                 ) : !enough ? (
                   <div className="rounded-2xl border border-amber/30 bg-amber/5 p-4 text-[14px] text-amber">
-                    You need {usdc(plan.amount)} USDC for the first payment. This wallet has {usdc(info!.balance)} USDC.
+                    {c.needFunds(usdc(plan.amount), usdc(info!.balance))}
                   </div>
                 ) : (
                   <button onClick={subscribe} disabled={busy || !info}
                     className="w-full rounded-full bg-usdc py-3.5 text-[15px] font-semibold text-white shadow-[0_10px_40px_-10px] shadow-usdc/70 transition hover:brightness-110 disabled:opacity-60">
-                    {busy ? "Confirm in your wallet…" : `Subscribe and pay ${usdc(plan.amount)} USDC`}
+                    {busy ? t.common.confirmInWallet : c.subscribe(usdc(plan.amount))}
                   </button>
                 )}
               </div>
-              <p className="mt-4 text-center text-[12px] text-dim">Cancel anytime. Network fee is less than $0.01.</p>
+              <p className="mt-4 text-center text-[12px] text-dim">{c.footnote}</p>
             </>
           )}
         </div>
@@ -185,7 +187,7 @@ function Frame({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5 sm:px-8" style={{ paddingTop: "max(1.25rem, env(safe-area-inset-top))" }}>
         <Link href="/"><Logo /></Link>
-        <WalletButton />
+        <div className="flex items-center gap-2"><LangSwitch /><WalletButton /></div>
       </header>
       {children}
     </div>

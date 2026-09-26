@@ -8,6 +8,8 @@ export const KEEPER_LOW_LAMPORTS = 50_000_000n;
 /** A due payment older than this with no keeper activity means the schedule isn't running. */
 const LAG_SECS = 10 * 60;
 
+export type ProblemCode = "notDeployed" | "keeperLow" | "noKeeper" | "lagging";
+
 export type Status = {
   ok: boolean;
   checkedAt: number;
@@ -15,7 +17,7 @@ export type Status = {
   program: { address: Address; deployed: boolean };
   keeper: { address: Address | null; lamports: string | null; low: boolean; lastActivityAt: number | null };
   subscriptions: { total: number; active: number; pastDue: number; lapsed: number; completed: number; oldestDueAt: number | null };
-  problems: string[];
+  problems: ProblemCode[];
 };
 
 async function keeperAddress(): Promise<Address | null> {
@@ -25,10 +27,22 @@ async function keeperAddress(): Promise<Address | null> {
   return (await createKeyPairSignerFromBytes(bytes)).address;
 }
 
-export async function getStatus(): Promise<Status> {
+// Per-instance cache so a burst of page views or monitor pings costs one round of RPC calls.
+let cached: { at: number; value: Promise<Status> } | null = null;
+const CACHE_MS = 20_000;
+
+export function getStatus(): Promise<Status> {
+  if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
+  const value = computeStatus();
+  cached = { at: Date.now(), value };
+  value.catch(() => { cached = null; });
+  return value;
+}
+
+async function computeStatus(): Promise<Status> {
   const rpc = serverRpc();
   const now = Math.floor(Date.now() / 1000);
-  const problems: string[] = [];
+  const problems: ProblemCode[] = [];
 
   const [programInfo, subs, keeper] = await Promise.all([
     rpc.getAccountInfo(RECUR_PROGRAM_ID, { encoding: "base64", dataSlice: { offset: 0, length: 0 } }).send(),
@@ -36,7 +50,7 @@ export async function getStatus(): Promise<Status> {
     keeperAddress().catch(() => null),
   ]);
   const deployed = !!programInfo.value?.executable;
-  if (!deployed) problems.push("The program isn't deployed on this cluster.");
+  if (!deployed) problems.push("notDeployed");
 
   let lamports: bigint | null = null;
   let lastActivityAt: number | null = null;
@@ -47,9 +61,9 @@ export async function getStatus(): Promise<Status> {
     ]);
     lamports = bal.value;
     lastActivityAt = sigs[0]?.blockTime != null ? Number(sigs[0].blockTime) : null;
-    if (lamports < KEEPER_LOW_LAMPORTS) problems.push("The keeper wallet is low on SOL for fees.");
+    if (lamports < KEEPER_LOW_LAMPORTS) problems.push("keeperLow");
   } else {
-    problems.push("KEEPER_SECRET_KEY isn't set, so no payments are collected.");
+    problems.push("noKeeper");
   }
 
   const counts = { active: 0, pastDue: 0, lapsed: 0, completed: 0 };
@@ -66,7 +80,7 @@ export async function getStatus(): Promise<Status> {
   }
   // Past-due can also mean the subscriber's wallet is empty; only flag it when the keeper looks idle too.
   if (oldestDueAt !== null && now - oldestDueAt > LAG_SECS && (lastActivityAt === null || now - lastActivityAt > LAG_SECS)) {
-    problems.push("Payments are overdue and the keeper hasn't sent anything recently. Check the cron job.");
+    problems.push("lagging");
   }
 
   return {

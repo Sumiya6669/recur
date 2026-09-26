@@ -2,21 +2,29 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Providers } from "./providers";
+import { I18nProvider } from "@/lib/i18n/client";
+import { getLocale, getT } from "@/lib/i18n/server";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: { default: "Recur — subscriptions in USDC on Solana", template: "%s · Recur" },
-  description: "Accept recurring USDC payments without holding anyone's money. Subscribers approve once; Recur collects on schedule.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
-  openGraph: { title: "Recur", description: "Subscriptions in USDC on Solana", images: ["/blink.png"] },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT();
+  return {
+    title: { default: t.meta.title, template: "%s · Recur" },
+    description: t.meta.description,
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+    openGraph: { title: "Recur", description: t.meta.description, images: ["/blink.png"] },
+  };
+}
 export const viewport: Viewport = { themeColor: "#071024", width: "device-width", initialScale: 1, viewportFit: "cover" };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang={locale} className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="min-h-dvh">
-        <Providers>{children}</Providers>
+        <I18nProvider locale={locale}>
+          <Providers>{children}</Providers>
+        </I18nProvider>
       </body>
     </html>
   );

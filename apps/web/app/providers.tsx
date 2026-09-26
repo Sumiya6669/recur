@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { RPC_URL } from "@/lib/config";
 import { ConnectDialog } from "@/components/ConnectDialog";
+import { useT } from "@/lib/i18n/client";
 
 type Toast = { id: number; tone: "ok" | "error" | "info"; title: string; body?: string; href?: string };
 type UI = {
@@ -17,6 +18,7 @@ export const useUI = () => {
 };
 
 export function Providers({ children }: { children: ReactNode }) {
+  const { t: tr } = useT();
   const [connectOpen, setConnectOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -45,7 +47,7 @@ export function Providers({ children }: { children: ReactNode }) {
                     {t.body && <div className="mt-0.5 text-[13px] text-mute">{t.body}</div>}
                     {t.href && (
                       <a href={t.href} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[13px] text-usdc-soft underline-offset-4 hover:underline">
-                        View on Solana Explorer
+                        {tr.common.viewOnExplorer}
                       </a>
                     )}
                   </div>

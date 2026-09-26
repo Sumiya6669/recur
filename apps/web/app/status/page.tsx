@@ -5,9 +5,12 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { explorerAddr } from "@/lib/config";
 import { relative, short } from "@/lib/format";
 import { getStatus, type Status } from "@/lib/server/status";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Status" };
-export const revalidate = 30;
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).t.statusPage.title };
+}
+export const dynamic = "force-dynamic";
 
 const sol = (lamports: string) => `${(Number(lamports) / 1e9).toFixed(3)} SOL`;
 
@@ -25,6 +28,8 @@ function Row({ label, children, tone }: { label: string; children: React.ReactNo
 }
 
 export default async function StatusPage() {
+  const { t, locale } = await getT();
+  const p = t.statusPage;
   let s: Status | null = null;
   let error: string | null = null;
   try { s = await getStatus(); } catch (e) { error = (e as Error).message; }
@@ -34,54 +39,54 @@ export default async function StatusPage() {
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5 sm:px-8" style={{ paddingTop: "max(1.25rem, env(safe-area-inset-top))" }}>
         <Link href="/"><Logo /></Link>
-        <Link href="/dashboard" className="rounded-full border border-line px-4 py-2 text-[14px] hover:border-mute">Dashboard</Link>
+        <Link href="/dashboard" className="rounded-full border border-line px-4 py-2 text-[14px] hover:border-mute">{t.common.dashboard}</Link>
       </header>
       <main className="mx-auto max-w-3xl px-5 pb-16 pt-6 sm:px-8">
         <h1 className="display text-[clamp(34px,5vw,52px)] font-semibold">
-          {s?.ok ? "Everything is running" : "Something needs attention"}
+          {s?.ok ? p.ok : p.notOk}
         </h1>
         <p className="mt-2 text-[15px] text-mute">
-          Live from the chain{s ? `, checked ${relative(s.checkedAt, now)}` : ""}. Refreshes every 30 seconds. JSON at{" "}
+          {p.lead(s ? relative(s.checkedAt, now, locale) : "…")}{" "}
           <a href="/api/status" className="underline underline-offset-4 hover:text-fg">/api/status</a>.
         </p>
 
-        {error && <p className="mt-8 rounded-2xl border border-coral/40 bg-coral/5 p-4 text-[14px] text-coral">Couldn't reach the RPC: {error}</p>}
+        {error && <p className="mt-8 rounded-2xl border border-coral/40 bg-coral/5 p-4 text-[14px] text-coral">{p.rpcError(error)}</p>}
         {s && s.problems.length > 0 && (
           <ul className="mt-8 space-y-2 rounded-2xl border border-amber/30 bg-amber/5 p-4 text-[14px] text-amber">
-            {s.problems.map((p) => <li key={p}>{p}</li>)}
+            {s.problems.map((code) => <li key={code}>{p.problems[code]}</li>)}
           </ul>
         )}
 
         {s && (
           <>
-            <h2 className="display mt-12 text-[24px] font-semibold">Payments</h2>
+            <h2 className="display mt-12 text-[24px] font-semibold">{p.payments}</h2>
             <dl className="mt-3 divide-y divide-line border-y border-line text-[15px]">
-              <Row label="Active subscriptions" tone="ok">{s.subscriptions.active}</Row>
-              <Row label="Due, inside the grace period" tone={s.subscriptions.pastDue ? "warn" : undefined}>
+              <Row label={p.active} tone="ok">{s.subscriptions.active}</Row>
+              <Row label={p.due} tone={s.subscriptions.pastDue ? "warn" : undefined}>
                 {s.subscriptions.pastDue}
-                {s.subscriptions.oldestDueAt && <span className="text-dim">, oldest {relative(s.subscriptions.oldestDueAt, now)}</span>}
+                {s.subscriptions.oldestDueAt && <span className="text-dim">{p.oldest(relative(s.subscriptions.oldestDueAt, now, locale))}</span>}
               </Row>
-              <Row label="Lapsed">{s.subscriptions.lapsed}</Row>
-              <Row label="Completed">{s.subscriptions.completed}</Row>
+              <Row label={p.lapsed}>{s.subscriptions.lapsed}</Row>
+              <Row label={p.completed}>{s.subscriptions.completed}</Row>
             </dl>
 
-            <h2 className="display mt-12 text-[24px] font-semibold">Keeper</h2>
+            <h2 className="display mt-12 text-[24px] font-semibold">{p.keeper}</h2>
             <dl className="mt-3 divide-y divide-line border-y border-line text-[15px]">
-              <Row label="Wallet" tone={s.keeper.address ? "ok" : "bad"}>
+              <Row label={p.wallet} tone={s.keeper.address ? "ok" : "bad"}>
                 {s.keeper.address
                   ? <a href={explorerAddr(s.keeper.address)} className="font-mono text-[13px] hover:text-fg">{short(s.keeper.address, 6)}</a>
-                  : "Not configured"}
+                  : p.notConfigured}
               </Row>
               {s.keeper.lamports !== null && (
-                <Row label="Balance for fees" tone={s.keeper.low ? "warn" : "ok"}>{sol(s.keeper.lamports)}</Row>
+                <Row label={p.balance} tone={s.keeper.low ? "warn" : "ok"}>{sol(s.keeper.lamports)}</Row>
               )}
-              <Row label="Last transaction">{s.keeper.lastActivityAt ? relative(s.keeper.lastActivityAt, now) : "None yet"}</Row>
+              <Row label={p.lastTx}>{s.keeper.lastActivityAt ? relative(s.keeper.lastActivityAt, now, locale) : p.noneYet}</Row>
             </dl>
 
-            <h2 className="display mt-12 text-[24px] font-semibold">Program</h2>
+            <h2 className="display mt-12 text-[24px] font-semibold">{p.program}</h2>
             <dl className="mt-3 divide-y divide-line border-y border-line text-[15px]">
-              <Row label="Network">{s.cluster}</Row>
-              <Row label="Program" tone={s.program.deployed ? "ok" : "bad"}>
+              <Row label={p.network}>{s.cluster}</Row>
+              <Row label={p.program} tone={s.program.deployed ? "ok" : "bad"}>
                 <a href={explorerAddr(s.program.address)} className="font-mono text-[13px] hover:text-fg">{short(s.program.address, 6)}</a>
               </Row>
             </dl>

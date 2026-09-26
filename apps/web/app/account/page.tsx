@@ -16,6 +16,8 @@ import { explorerTx, rpc } from "@/lib/config";
 import { dateTime, nowSecs, period, relative, usdc } from "@/lib/format";
 import { signAndSend } from "@/lib/send";
 import { explain } from "@/lib/errors";
+import { useT } from "@/lib/i18n/client";
+import { LangSwitch } from "@/components/LangSwitch";
 
 type Item = SubscriptionAccount & { planName: string; merchantName: string; health: PaymentHealth };
 
@@ -33,6 +35,8 @@ function Ring({ progress, tone }: { progress: number; tone: string }) {
 export default function Account() {
   const wallet = useWallet();
   const { openConnect, toast } = useUI();
+  const { t, locale } = useT();
+  const a = t.account;
   const [items, setItems] = useState<Item[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const who = wallet.publicKey?.toBase58();
@@ -45,12 +49,12 @@ export default function Account() {
     const tokens = await fetchMultipleAccountBytes(rpc(), subs.map((s) => s.subscriberTokenAccount));
     setItems(await Promise.all(subs.map(async (s, i) => ({
       ...s,
-      planName: plans[i] ? decodePlan(s.plan, plans[i]!.data).name : "Plan",
-      merchantName: merchants[i] ? decodeMerchant(s.merchant, merchants[i]!.data).name : "Merchant",
+      planName: plans[i] ? decodePlan(s.plan, plans[i]!.data).name : a.fallbackPlan,
+      merchantName: merchants[i] ? decodeMerchant(s.merchant, merchants[i]!.data).name : a.fallbackMerchant,
       health: await getPaymentHealth(s, tokens[i] ? decodeTokenAccount(tokens[i]!.data) : null),
     }))));
-  }, [who]);
-  useEffect(() => { load().catch((e) => toast({ tone: "error", title: "Couldn't load subscriptions", body: explain(e) })); }, [load, toast]);
+  }, [who, a]);
+  useEffect(() => { load().catch((e) => toast({ tone: "error", title: a.loadFailed, body: explain(e, locale) })); }, [load, toast, a, locale]);
 
   async function run(key: string, title: string, build: () => Promise<Parameters<typeof signAndSend>[1]>) {
     setBusy(key);
@@ -58,7 +62,7 @@ export default function Account() {
       const sig = await signAndSend(wallet, await build());
       toast({ tone: "ok", title, href: explorerTx(sig) });
       await load();
-    } catch (e) { toast({ tone: "error", title: "That didn't go through", body: explain(e) }); }
+    } catch (e) { toast({ tone: "error", title: a.failed, body: explain(e, locale) }); }
     finally { setBusy(null); }
   }
   const signer = () => noopSigner(address(who!));
@@ -69,31 +73,31 @@ export default function Account() {
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-4xl items-center justify-between px-5 py-5 sm:px-8" style={{ paddingTop: "max(1.25rem, env(safe-area-inset-top))" }}>
         <Link href="/"><Logo /></Link>
-        <WalletButton />
+        <div className="flex items-center gap-2"><LangSwitch /><WalletButton /></div>
       </header>
       <main className="mx-auto max-w-4xl px-5 pb-20 pt-6 sm:px-8">
-        <h1 className="display text-[clamp(34px,5vw,52px)] font-semibold">Your subscriptions</h1>
-        <p className="mt-2 max-w-xl text-[15px] text-mute">Every subscription paid from this wallet through Recur. Cancelling stops future payments right away.</p>
+        <h1 className="display text-[clamp(34px,5vw,52px)] font-semibold">{a.title}</h1>
+        <p className="mt-2 max-w-xl text-[15px] text-mute">{a.lead}</p>
 
         {!who ? (
           <div className="mt-10 rounded-[24px] border border-line bg-deep/60 p-8">
-            <p className="text-[15px] text-mute">Connect the wallet you pay from to see and manage your subscriptions.</p>
-            <button onClick={openConnect} className="mt-5 rounded-full bg-fg px-5 py-2.5 text-[14px] font-medium text-ink hover:bg-white">Connect wallet</button>
+            <p className="text-[15px] text-mute">{a.connectPrompt}</p>
+            <button onClick={openConnect} className="mt-5 rounded-full bg-fg px-5 py-2.5 text-[14px] font-medium text-ink hover:bg-white">{t.common.connectWallet}</button>
           </div>
         ) : items === null ? (
-          <p className="mt-10 text-mute">Loading…</p>
+          <p className="mt-10 text-mute">{t.common.loading}</p>
         ) : items.length === 0 ? (
-          <p className="mt-10 rounded-[24px] border border-line p-8 text-[15px] text-mute">No subscriptions on this wallet yet.</p>
+          <p className="mt-10 rounded-[24px] border border-line p-8 text-[15px] text-mute">{a.empty}</p>
         ) : (
           <>
             {needsRestore && (
               <div className="mt-8 flex flex-col gap-4 rounded-[24px] border border-amber/30 bg-amber/5 p-5 sm:flex-row sm:items-center">
                 <p className="flex-1 text-[14px] leading-relaxed text-amber">
-                  Some payments will fail. Your approval was replaced by another app or has been used up. Renew it to keep your subscriptions running.
+                  {a.restoreNote}
                 </p>
-                <button onClick={() => run("restore", "Payments restored", () => buildRestoreInstructions({ rpc: rpc(), subscriber: signer() }))}
+                <button onClick={() => run("restore", a.restored, () => buildRestoreInstructions({ rpc: rpc(), subscriber: signer() }))}
                   disabled={busy === "restore"} className="rounded-full bg-amber px-5 py-2.5 text-[14px] font-semibold text-ink disabled:opacity-60">
-                  {busy === "restore" ? "Confirm in wallet…" : "Renew approval"}
+                  {busy === "restore" ? t.common.confirmInWallet : a.restore}
                 </button>
               </div>
             )}
@@ -111,19 +115,19 @@ export default function Account() {
                           <span className="truncate text-[16px] font-semibold">{s.merchantName}</span>
                           <StatusPill status={status} />
                         </div>
-                        <div className="text-[14px] text-mute">{s.planName}, {usdc(s.amount)} USDC {period(s.periodSecs).adverb}</div>
+                        <div className="text-[14px] text-mute">{s.planName}, {usdc(s.amount)} USDC {period(s.periodSecs, locale).adverb}</div>
                         <div className="text-[13px] text-dim">
-                          {status === "completed" ? "All payments made" : status === "lapsed" ? "Paused after a missed payment" : `Next payment ${relative(s.nextChargeAt)}, ${dateTime(s.nextChargeAt)}`}
-                          {s.maxCycles > 0n && `. ${s.cyclesPaid} of ${s.maxCycles} paid`}
+                          {status === "completed" ? a.allPaid : status === "lapsed" ? a.pausedMissed : a.nextPayment(relative(s.nextChargeAt, undefined, locale), dateTime(s.nextChargeAt, locale))}
+                          {s.maxCycles > 0n && `. ${a.cyclesPaid(s.cyclesPaid, s.maxCycles)}`}
                         </div>
                       </div>
                     </div>
                     <button
-                      onClick={() => confirm(`Cancel ${s.planName} from ${s.merchantName}? You won't be charged again.`) &&
-                        run(s.address, "Subscription cancelled", () => buildCancelInstructions({ rpc: rpc(), subscriber: signer(), subscription: s }))}
+                      onClick={() => confirm(a.confirmCancel(s.planName, s.merchantName)) &&
+                        run(s.address, a.cancelled, () => buildCancelInstructions({ rpc: rpc(), subscriber: signer(), subscription: s }))}
                       disabled={busy === s.address}
                       className="self-start rounded-full border border-line px-4 py-2 text-[14px] text-mute hover:border-coral/60 hover:text-coral disabled:opacity-50 sm:self-auto">
-                      {busy === s.address ? "Cancelling…" : "Cancel"}
+                      {busy === s.address ? t.common.cancelling : t.common.cancel}
                     </button>
                   </li>
                 );

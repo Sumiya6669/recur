@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useUI } from "@/app/providers";
 import { short } from "@/lib/format";
+import { useT } from "@/lib/i18n/client";
 
 export function WalletButton({ className = "" }: { className?: string }) {
   const { publicKey, disconnect, connecting, wallet } = useWallet();
   const { openConnect } = useUI();
+  const { t } = useT();
   const [menu, setMenu] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -19,7 +21,7 @@ export function WalletButton({ className = "" }: { className?: string }) {
     return (
       <button onClick={openConnect} disabled={connecting}
         className={`rounded-full bg-fg px-4 py-2 text-[14px] font-medium text-ink transition hover:bg-white disabled:opacity-60 ${className}`}>
-        {connecting ? "Connecting…" : "Connect wallet"}
+        {connecting ? t.common.connecting : t.common.connectWallet}
       </button>
     );
   }
@@ -35,9 +37,9 @@ export function WalletButton({ className = "" }: { className?: string }) {
       {menu && (
         <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-2xl border border-line bg-raise shadow-2xl shadow-black/50">
           <button className="block w-full px-4 py-2.5 text-left text-[14px] hover:bg-deep"
-            onClick={() => { navigator.clipboard.writeText(a); setMenu(false); }}>Copy address</button>
+            onClick={() => { navigator.clipboard.writeText(a); setMenu(false); }}>{t.common.copyAddress}</button>
           <button className="block w-full px-4 py-2.5 text-left text-[14px] text-coral hover:bg-deep"
-            onClick={() => { disconnect(); setMenu(false); }}>Disconnect</button>
+            onClick={() => { disconnect(); setMenu(false); }}>{t.common.disconnect}</button>
         </div>
       )}
     </div>
