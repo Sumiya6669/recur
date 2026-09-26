@@ -36,7 +36,7 @@ export function ConnectDialog({ open, onClose }: { open: boolean; onClose: () =>
       <div className="p-6">
         <h2 className="display text-[26px] font-semibold">{t.connect.title}</h2>
         <p className="mt-1 text-[14px] text-mute">{t.connect.body}</p>
-        <ul className="mt-5 flex flex-col gap-2">
+        <ul className={`flex flex-col gap-2 ${installed.length ? "mt-5" : ""}`}>
           {installed.map((w) => (
             <li key={w.adapter.name}>
               <button onClick={() => select(w.adapter.name)}
