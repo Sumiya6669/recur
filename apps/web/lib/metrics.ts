@@ -39,7 +39,7 @@ export function computeMetrics(plans: PlanAccount[], subs: Sub[], now: bigint) {
     }
   }
   const upcoming = rows
-    .filter((r) => r.status !== "lapsed" && r.status !== "completed" && r.nextChargeAt <= now + 7n * 86_400n)
+    .filter((r) => r.status !== "lapsed" && r.status !== "completed" && r.nextChargeAt >= now && r.nextChargeAt <= now + 7n * 86_400n)
     .sort((a, b) => Number(a.nextChargeAt - b.nextChargeAt));
 
   return { rows, mrr, forecast, collected, active, pastDue, lapsed, atRisk, byPlan, upcoming };

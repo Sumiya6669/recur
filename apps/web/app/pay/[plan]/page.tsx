@@ -143,7 +143,7 @@ function Checkout() {
               <dl className="mt-6 divide-y divide-line border-y border-line text-[14px]">
                 <div className="flex justify-between py-3"><dt className="text-mute">Due today</dt><dd className="tabular font-medium">{usdc(plan.amount)} USDC</dd></div>
                 <div className="flex justify-between py-3"><dt className="text-mute">Then</dt><dd className="tabular">{usdc(plan.amount)} USDC {per.adverb}</dd></div>
-                <div className="flex justify-between gap-4 py-3"><dt className="text-mute">If a payment is missed</dt><dd className="text-right">Access continues for {period(plan.graceSecs || 1n).every}</dd></div>
+                <div className="flex justify-between gap-4 py-3"><dt className="text-mute">If a payment is missed</dt><dd className="text-right">{plan.graceSecs ? `Access continues for ${period(plan.graceSecs).span}` : "Access pauses until it is paid"}</dd></div>
               </dl>
 
               {info && (

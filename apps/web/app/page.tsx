@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Orbit, type OrbitItem } from "@/components/Orbit";
 import { Logo } from "@/components/Logo";
+import { APP_URL } from "@/lib/config";
 
 const DAY = 86400;
 
@@ -141,7 +142,7 @@ export default function Landing() {
           </div>
           <div className="min-w-0 space-y-4">
             <pre className="scroll-x rounded-2xl border border-line bg-ink p-5 text-[13px] leading-relaxed text-mute"><code>{`const res = await fetch(
-  \`https://recur.app/api/access?plan=\${PLAN}&wallet=\${wallet}\`
+  \`${APP_URL}/api/access?plan=\${PLAN}&wallet=\${wallet}\`
 );
 const { active } = await res.json();
 if (active) grantRole(member);`}</code></pre>

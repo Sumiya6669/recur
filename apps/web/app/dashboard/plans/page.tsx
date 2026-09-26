@@ -5,7 +5,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { buildCreatePlanInstructions, getSetPlanActiveInstruction, noopSigner, toBaseUnits, type PlanAccount } from "@recur/sdk";
 import { useDashboard } from "@/components/dashboard/context";
 import { APP_URL, USDC, explorerTx, rpc } from "@/lib/config";
-import { period, usdc } from "@/lib/format";
+import { money, period, usdc } from "@/lib/format";
 import { signAndSend } from "@/lib/send";
 import { explain } from "@/lib/errors";
 import { useUI } from "@/app/providers";
@@ -69,8 +69,8 @@ export default function Plans() {
               </div>
               <dl className="mt-5 grid grid-cols-2 gap-y-1 text-[13px]">
                 <dt className="text-dim">Subscribers</dt><dd className="tabular text-right">{b?.active ?? 0}</dd>
-                <dt className="text-dim">Monthly revenue</dt><dd className="tabular text-right">${(b?.mrr ?? 0).toFixed(2)}</dd>
-                <dt className="text-dim">Grace period</dt><dd className="text-right">{period(p.graceSecs || 1n).every}</dd>
+                <dt className="text-dim">Monthly revenue</dt><dd className="tabular text-right">{money(b?.mrr ?? 0)}</dd>
+                <dt className="text-dim">Grace period</dt><dd className="text-right">{p.graceSecs ? period(p.graceSecs).span : "None"}</dd>
               </dl>
               <div className="mt-6 flex flex-wrap gap-2 border-t border-line pt-4">
                 <button onClick={() => copy(link, "Checkout link copied")} className="rounded-full bg-raise px-3.5 py-1.5 text-[13px] hover:bg-line">Copy checkout link</button>
@@ -156,7 +156,7 @@ function CreatePlanDialog({ open, onClose, onCreated }: { open: boolean; onClose
                 </label>
               ))}
             </div>
-            <p className="mt-2 text-[12px] text-dim">Subscribers keep access for {period(chosen.grace).every} after a missed payment.</p>
+            <p className="mt-2 text-[12px] text-dim">Subscribers keep access for {period(chosen.grace).span} after a missed payment.</p>
           </fieldset>
         </div>
         <div className="mt-7 flex gap-3">

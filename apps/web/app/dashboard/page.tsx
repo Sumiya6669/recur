@@ -4,11 +4,10 @@ import { useMemo } from "react";
 import { Orbit, OrbitLegend, type OrbitItem } from "@/components/Orbit";
 import { useDashboard } from "@/components/dashboard/context";
 import { HEALTH_LABEL } from "@/components/StatusPill";
-import { period, relative, short, usdc } from "@/lib/format";
+import { money, period, relative, short, usdc } from "@/lib/format";
 import { APP_URL } from "@/lib/config";
 import { useUI } from "@/app/providers";
 
-const money = (v: number) => `$${v.toLocaleString("en-US", { maximumFractionDigits: v >= 1000 ? 0 : 2 })}`;
 
 export default function Overview() {
   const { ready, href } = useDashboard();

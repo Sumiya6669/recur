@@ -5,6 +5,9 @@ export const usdc = (base: bigint | number, decimals = 6) => {
   const v = typeof base === "bigint" ? Number(base) / 10 ** decimals : base;
   return v >= 10_000 ? nf0.format(v) : nf.format(v);
 };
+/** Dollar amount for dashboard figures: cents below $1,000, whole dollars above. */
+export const money = (v: number) => `$${v.toLocaleString("en-US", { maximumFractionDigits: v >= 1000 ? 0 : 2 })}`;
+
 export const usdcNum = (base: bigint, decimals = 6) => Number(base) / 10 ** decimals;
 
 export const short = (a: string, n = 4) => (a.length > 2 * n + 1 ? `${a.slice(0, n)}…${a.slice(-n)}` : a);
@@ -22,10 +25,15 @@ export function period(secs: bigint | number) {
   for (const [len, unit, adverb] of table) {
     if (s % len === 0) {
       const n = s / len;
-      return { every: n === 1 ? unit : `${n} ${unit}s`, adverb: n === 1 ? adverb : `every ${n} ${unit}s` };
+      return {
+        every: n === 1 ? unit : `${n} ${unit}s`,
+        span: `${n} ${unit}${n === 1 ? "" : "s"}`,
+        adverb: n === 1 ? adverb : `every ${n} ${unit}s`,
+      };
     }
   }
-  return { every: `${s} seconds`, adverb: `every ${s} seconds` };
+  const label = `${s} second${s === 1 ? "" : "s"}`;
+  return { every: label, span: label, adverb: `every ${label}` };
 }
 
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
