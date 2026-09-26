@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Orbit, type OrbitItem } from "@/components/Orbit";
 import { Logo } from "@/components/Logo";
+import { SiteFooter } from "@/components/SiteFooter";
 import { APP_URL } from "@/lib/config";
 
 const DAY = 86400;
@@ -41,7 +42,7 @@ export default function Landing() {
         <Logo />
         <nav className="flex items-center gap-1 text-[14px] sm:gap-2">
           <a href="#developers" className="hidden rounded-full px-3 py-2 text-mute hover:text-fg sm:block">Developers</a>
-          <Link href="/account" className="hidden rounded-full px-3 py-2 text-mute hover:text-fg sm:block">My subscriptions</Link>
+          <Link href="/account" className="rounded-full px-3 py-2 text-mute hover:text-fg"><span className="sm:hidden">Account</span><span className="hidden sm:inline">My subscriptions</span></Link>
           <Link href="/dashboard" className="rounded-full border border-line px-4 py-2 hover:border-mute">Dashboard</Link>
         </nav>
       </header>
@@ -162,11 +163,7 @@ x-recur-signature: t=1759000000,v1=9f2c…
         </div>
       </section>
 
-      <footer className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 text-[14px] text-dim sm:flex-row sm:items-center sm:justify-between sm:px-8"
-        style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
-        <Logo className="opacity-70" />
-        <span>Non-custodial recurring payments on Solana. Open source.</span>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

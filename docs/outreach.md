@@ -38,7 +38,7 @@
 
 ## Напоминание через 2 дня
 
-> Quick follow-up: here's a 2-minute demo of the checkout and dashboard: [link]. Happy to set up a test plan for you, even at 1 USDC.
+> Quick follow-up: here's the checkout and dashboard to click through: https://recur-tawny.vercel.app/dashboard?demo=1. Happy to set up a test plan for you, even at 1 USDC.
 
 ## Таблица
 

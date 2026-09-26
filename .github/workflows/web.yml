@@ -1,0 +1,28 @@
+name: Web
+
+# Typechecks the SDK, keeper and web app and runs a production build, so a broken
+# change is caught before Vercel deploys it.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["programs/**", "**/*.md"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsc -p packages/sdk && npx tsc -p apps/keeper
+      - run: npx tsc --noEmit
+        working-directory: apps/web
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_CLUSTER: devnet
+          NEXT_PUBLIC_APP_URL: https://recur-tawny.vercel.app

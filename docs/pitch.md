@@ -34,7 +34,7 @@ We start with crypto-native communities and tools that already charge by hand: [
 
 1. **Architecture (30 s).** One global delegate PDA per program, because SPL Token allows a single delegate per token account. The subscription PDA `(plan, subscriber)` stores the locked amount, period, grace and `max_cycles`. `charge` is permissionless and can only move `amount` to `merchant.settlement_wallet`'s account once per period.
 2. **Safety (40 s).** Show `SECURITY.md`: threat table, the tests for redirected payments, early charges, back-billing, cancel, completed plans, Token-2022 rejection. Mention the approval is recomputed from on-chain state on every subscribe/cancel, so one wallet can hold many subscriptions safely.
-3. **Live run (60 s).** Terminal: `npm test` (12 passed). Then `scripts/e2e-local.ts` against a local validator: subscribe to two plans, keeper collects exactly the due one, cancel shrinks the approval.
+3. **Live run (60 s).** Terminal: `npm test` (12 passed). Then `scripts/e2e-devnet.ts` against the deployed site: Blink builds a transaction, subscribe to the 2-minute plan, the production keeper collects the renewal on schedule, cancel shrinks the approval and `/api/access` turns off. Finish on `/status`.
 4. **Keeper and webhooks (30 s).** `/api/cron/charge` response, `payment.succeeded` event with HMAC signature header.
 5. **Access API (20 s).** `curl /api/access?plan=…&wallet=…` → `{"active": true}`.
 
@@ -49,9 +49,15 @@ Recur brings recurring payments to Solana. Crypto businesses can't charge monthl
 
 With Recur, the customer approves a capped amount once and pays the first period in the same transaction. The subscription's price and schedule are recorded on-chain, and each payment is collected when due by a permissionless crank. Funds stay in the customer's wallet in between. Prices are locked at signup, there is no back-billing after a lapse, and the subscriber or merchant can cancel at any time.
 
-Merchants get a hosted checkout, Blinks, a dashboard with MRR, forecast and at-risk payments, an access-check API and signed webhooks. The program is written in Anchor 1.2 with 12 tests, a local-validator end-to-end run and a written security review.
+Merchants get a hosted checkout, Blinks, a dashboard with MRR, forecast and at-risk payments, an access-check API and signed webhooks. The program is written in Anchor 1.2 with 12 tests, end-to-end runs on a local validator and against the live devnet deployment, and a written security review.
 
 We start with crypto-native communities, bots and API tools that already accept USDC manually, then expand to any internet business selling globally and to AI agents that pay for services on a schedule.
+
+**Links:**
+- Live demo: https://recur-tawny.vercel.app (sample dashboard at `/dashboard?demo=1`)
+- Checkout to try on devnet: https://recur-tawny.vercel.app/pay/DwBEiTu7wzZ2pSeVmw17NkYC34SWVviDEGmp6c9J2qVA
+- Code: https://github.com/Sumiya6669/recur
+- Program (devnet): `Dtzj1BPFspDjfACbQXDZ1Hsx6CizeYRg9aa2Po1BAawA`
 
 **Tracks:** [Payments / Stablecoins, whichever exists this season]
 
