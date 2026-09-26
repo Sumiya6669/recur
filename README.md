@@ -44,6 +44,22 @@ and cancel, so one wallet can hold many subscriptions.
 Guarantees enforced on-chain: price locked at signup, at most one charge per period, no back-billing after a
 lapse, funds only go to the merchant's own account, cancel by subscriber or merchant. See [SECURITY.md](SECURITY.md).
 
+## Build on Recur
+
+Recur is a primitive, not a walled garden. Everything a merchant sees in the dashboard is available to other apps:
+
+| Building block | What it gives you |
+|---|---|
+| `GET /api/access?plan=&wallet=` | Is this wallet paid up right now? Edge-cached, CORS-open |
+| Signed webhooks | `payment.succeeded`, `payment.failed`, `payment.at_risk`, `subscription.completed`, HMAC-SHA256 ([docs](docs/webhooks.md)) |
+| Solana Actions / Blinks | Every checkout link is a Blink; subscribe from a post |
+| TypeScript SDK (`packages/sdk`) | Instruction builders, decoders, allowance math, `hasAccess`, a keeper you can run yourself |
+| Permissionless `charge` | Anyone can crank due payments; the program only lets the agreed amount reach the merchant |
+| Squads-compatible payouts | The settlement wallet can be a multisig vault |
+| [Discord role gating](examples/discord-gate) | Grants and revokes a role from on-chain state, with wallet ownership proved by a signed message |
+
+The web app ships in English, Russian and Kazakh.
+
 ## Repository
 
 ```
@@ -53,6 +69,7 @@ apps/web            Next.js 16: landing, dashboard, checkout, subscriber portal,
 apps/keeper         Long-running keeper service
 tests               LiteSVM tests (12)
 scripts             devnet seeding, local and devnet end-to-end runs
+examples            Discord role gating (no dependencies)
 docs                pitch kit, webhooks, merchant outreach
 ```
 
