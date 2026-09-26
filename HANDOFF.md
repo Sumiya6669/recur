@@ -1,18 +1,25 @@
-# Первое сообщение для Claude Code
+# Handoff: где мы сейчас
 
-Откройте папку `recur` в Claude Code и вставьте текст ниже целиком.
+Обновлено 26 сентября 2026. Откройте папку `recur` в Claude Code и скажите: «Прочитай HANDOFF.md и продолжай».
+Контекст проекта — CLAUDE.md, приёмка — docs/ACCEPTANCE.md, безопасность — SECURITY.md, питч — docs/pitch.md.
 
----
+## Готово
+- GitHub https://github.com/Sumiya6669/recur (public), Vercel https://recur-tawny.vercel.app (push в main = деплой).
+- Программа в devnet `Dtzj1BPFspDjfACbQXDZ1Hsx6CizeYRg9aa2Po1BAawA`; сборка и деплой — `.github/workflows/program.yml`
+  (`gh workflow run program.yml -f deploy=true`). WSL на этой машине нет.
+- Keeper: `/api/cron/charge` раз в минуту с cron-job.org; ключ keeper в Vercel; сквозная проверка `scripts/e2e-devnet.ts` проходит.
+- Веб: EN/RU/KZ, `/status`, 404 и страница ошибки, `/legal`, CSP и заголовки безопасности, CI `Web`.
+- Питч под критерии правил, письма мерчантам EN/RU/KZ, пример `examples/discord-gate`.
+- Ключи вне репозитория: `C:\Users\1C\.recur-keys\` (program, deployer, keeper, tester).
 
-Привет! Это проект Recur для хакатона Colosseum (дедлайн 12 октября). Всё контекстное описание в CLAUDE.md, прочитай его, а также MANUAL.md и SECURITY.md. Я на Windows, для Solana/Anchor есть или будет WSL2.
+## В работе (делает Claude)
+1. Лимит каждой подписки on-chain (`budget_remaining` + инструкция `extend`), тесты, SDK, веб, обновление программы в devnet.
 
-Делай по порядку и спрашивай меня только там, где нужны мои ключи, деньги или подтверждение публикации:
+## Ждёт пользователя
+- Тест с Phantom на телефоне, вычитка казахского, оповещение cron-job.org на `/api/status`, ограничение ключа Helius по домену,
+  правило WAF (по желанию), мерчанты, видео на английском, регистрация и заявка на colosseum.com
+  до 12.10 23:59 PT (13.10 11:59 Алматы). Supabase — позже, по решению пользователя.
 
-1. Проверь окружение: node, npm, git, gh; в WSL — solana, anchor 1.2. Чего нет, помоги установить.
-2. `npm install`, затем `npm test` (в WSL после `anchor build`) и `npm run build`. Всё должно быть зелёным.
-3. Опубликуй репозиторий на GitHub командой `/publish-github`.
-4. Задеплой веб на Vercel через Vercel MCP командой `/vercel-deploy` (команда: sumiya6669's projects, Root Directory `apps/web`). Потом открой сайт, проверь `/`, `/dashboard?demo=1`, `/pay/...` на десктопе и мобильном и поправь визуальные косяки.
-5. Задеплой программу на devnet командой `/deploy-devnet`: свой program ID, seed тарифов, keeper-кошелёк, переменные в Vercel, внешний cron.
-6. Пройди чек-лист из раздела 7 в MANUAL.md вместе со мной.
-
-Когда я создам аккаунт Supabase, следующий этап: вебхуки с надёжной доставкой, история платежей в дашборде и пример выдачи роли в Discord.
+## Не делать
+- Не вливать PR Dependabot #1–6 до дедлайна.
+- Не деплоить в mainnet и не тратить SOL/USDC без явного согласия.
