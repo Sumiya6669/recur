@@ -17,7 +17,7 @@ const envProgramId =
 
 /** Set via NEXT_PUBLIC_RECUR_PROGRAM_ID / RECUR_PROGRAM_ID after `anchor keys sync`. */
 export const RECUR_PROGRAM_ID: Address = address(
-  envProgramId || "5q4Mnn9HuUfhMjh74xadC19Sh1dZAfjkRHJsJDZZhsW8",
+  envProgramId || "Dtzj1BPFspDjfACbQXDZ1Hsx6CizeYRg9aa2Po1BAawA",
 );
 export const SYSTEM_PROGRAM_ID = address("11111111111111111111111111111111");
 export const TOKEN_PROGRAM_ID = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");

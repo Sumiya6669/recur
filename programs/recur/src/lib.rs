@@ -20,7 +20,7 @@ use anchor_spl::token_interface::{
     self, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
 
-declare_id!("5q4Mnn9HuUfhMjh74xadC19Sh1dZAfjkRHJsJDZZhsW8");
+declare_id!("Dtzj1BPFspDjfACbQXDZ1Hsx6CizeYRg9aa2Po1BAawA");
 
 pub const DELEGATE_SEED: &[u8] = b"delegate";
 pub const MERCHANT_SEED: &[u8] = b"merchant";

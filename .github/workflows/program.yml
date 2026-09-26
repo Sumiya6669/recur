@@ -1,0 +1,85 @@
+name: Program
+
+# Builds the Anchor program with cargo build-sbf, runs the LiteSVM tests and,
+# when started by hand with "deploy" checked, deploys it to devnet.
+# Secrets: DEPLOYER_KEYPAIR and PROGRAM_KEYPAIR (Solana CLI JSON arrays),
+# optional DEVNET_RPC_URL (falls back to the public devnet RPC).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "programs/**"
+      - "packages/sdk/**"
+      - "tests/**"
+      - "Cargo.*"
+      - ".github/workflows/program.yml"
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy to devnet after the tests pass"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Cache Solana toolchain and cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: sbf-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install Solana CLI
+        run: |
+          if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/solana" ]; then
+            sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          fi
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Build program
+        run: |
+          solana --version
+          cargo build-sbf --manifest-path programs/recur/Cargo.toml
+          ls -l target/deploy
+
+      - run: npm ci
+      - run: npm test
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: recur-so
+          path: target/deploy/recur.so
+
+      - name: Deploy to devnet
+        if: ${{ inputs.deploy }}
+        env:
+          DEPLOYER_KEYPAIR: ${{ secrets.DEPLOYER_KEYPAIR }}
+          PROGRAM_KEYPAIR: ${{ secrets.PROGRAM_KEYPAIR }}
+          RPC: ${{ secrets.DEVNET_RPC_URL || 'https://api.devnet.solana.com' }}
+        run: |
+          umask 077
+          printf '%s' "$DEPLOYER_KEYPAIR" > "$RUNNER_TEMP/deployer.json"
+          printf '%s' "$PROGRAM_KEYPAIR" > "$RUNNER_TEMP/program.json"
+          trap 'rm -f "$RUNNER_TEMP/deployer.json" "$RUNNER_TEMP/program.json"' EXIT
+          echo "Deployer: $(solana address -k "$RUNNER_TEMP/deployer.json")  balance: $(solana balance -u "$RPC" -k "$RUNNER_TEMP/deployer.json")"
+          solana program deploy target/deploy/recur.so \
+            --program-id "$RUNNER_TEMP/program.json" \
+            --keypair "$RUNNER_TEMP/deployer.json" \
+            --url "$RPC" \
+            --with-compute-unit-price 10000 \
+            --max-sign-attempts 50
+          solana program show "$(solana address -k "$RUNNER_TEMP/program.json")" -u "$RPC"

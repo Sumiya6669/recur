@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-recur = "5q4Mnn9HuUfhMjh74xadC19Sh1dZAfjkRHJsJDZZhsW8"
+recur = "Dtzj1BPFspDjfACbQXDZ1Hsx6CizeYRg9aa2Po1BAawA"
 
 [programs.devnet]
-recur = "5q4Mnn9HuUfhMjh74xadC19Sh1dZAfjkRHJsJDZZhsW8"
+recur = "Dtzj1BPFspDjfACbQXDZ1Hsx6CizeYRg9aa2Po1BAawA"
 
 [provider]
 cluster = "devnet"
