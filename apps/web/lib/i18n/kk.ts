@@ -232,6 +232,7 @@ export const kk: Dict = {
     already: "Сіз жазылғансыз. Басқару",
     needFunds: (need, has) => `Алғашқы төлемге ${need} USDC керек. Бұл әмиянда ${has} USDC бар.`,
     subscribe: (amount) => `Жазылу және ${amount} USDC төлеу`,
+    testUsdc: "Бұл сынақ желісі. Тегін сынақ USDC (Solana Devnet) мына жерден алуға болады:",
     footnote: "Кез келген уақытта тоқтатуға болады. Желі комиссиясы $0.01-ден аз.",
     failed: "Жазылым рәсімделмеді",
   },

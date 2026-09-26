@@ -14,8 +14,11 @@
 
 - Лимит каждой подписки on-chain (`budget_remaining`, `extend`, ошибка 6012): 13 тестов, программа обновлена в devnet, e2e пройден.
 
-## В работе (делает Claude)
-1. Кнопки «Открыть в Phantom / Solflare» на телефоне без кошелька.
+- На телефоне без кошелька — кнопки «Открыть в Phantom / Solflare»; в devnet при нехватке USDC — ссылка на faucet.circle.com.
+- Презентация на claude.ai обновлена: https://claude.ai/artifact/2EvzyJpi2UAiuYbnzNiWs2 (13 тестов, бюджеты, ссылки).
+
+## Дальше у Claude (до mainnet, после хакатона)
+- `MIN_PERIOD_SECS` через cargo-фичу devnet, конфиг mainnet, передача upgrade authority на Squads, разбор PR Dependabot, Supabase.
 
 ## Ждёт пользователя
 - Тест с Phantom на телефоне, вычитка казахского, оповещение cron-job.org на `/api/status`, ограничение ключа Helius по домену,

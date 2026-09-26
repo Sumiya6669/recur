@@ -14,7 +14,7 @@ import { Orbit, type OrbitItem } from "@/components/Orbit";
 import { Logo } from "@/components/Logo";
 import { WalletButton } from "@/components/WalletButton";
 import { useUI } from "@/app/providers";
-import { explorerTx, rpc } from "@/lib/config";
+import { CLUSTER, explorerTx, rpc } from "@/lib/config";
 import { dateTime, period, usdc } from "@/lib/format";
 import { signAndSend } from "@/lib/send";
 import { explain } from "@/lib/errors";
@@ -165,6 +165,12 @@ function Checkout() {
                 ) : !enough ? (
                   <div className="rounded-2xl border border-amber/30 bg-amber/5 p-4 text-[14px] text-amber">
                     {c.needFunds(usdc(plan.amount), usdc(info!.balance))}
+                    {CLUSTER !== "mainnet" && (
+                      <span className="mt-2 block text-mute">
+                        {c.testUsdc}{" "}
+                        <a href="https://faucet.circle.com" target="_blank" rel="noreferrer" className="text-usdc-soft underline underline-offset-4">faucet.circle.com</a>
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <button onClick={subscribe} disabled={busy || !info}

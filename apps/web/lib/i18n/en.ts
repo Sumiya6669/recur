@@ -231,6 +231,7 @@ export const en = {
     already: "You're already subscribed. Manage it",
     needFunds: (need: string, has: string) => `You need ${need} USDC for the first payment. This wallet has ${has} USDC.`,
     subscribe: (amount: string) => `Subscribe and pay ${amount} USDC`,
+    testUsdc: "This is a test network. Get free test USDC (Solana Devnet) at",
     footnote: "Cancel anytime. Network fee is less than $0.01.",
     failed: "Subscription didn't go through",
   },
