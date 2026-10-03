@@ -9,6 +9,6 @@
   },
   "dependencies": {
     "@recur/sdk": "*",
-    "@solana/kit": "^8.0.0"
+    "@solana/kit": "^8.4.0"
   }
 }
