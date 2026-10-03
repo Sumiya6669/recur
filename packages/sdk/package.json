@@ -8,7 +8,7 @@
     "./keeper": "./src/keeper.ts"
   },
   "dependencies": {
-    "@solana/kit": "^8.0.0",
-    "@solana-program/token": "^0.16.0"
+    "@solana/kit": "^8.4.0",
+    "@solana-program/token": "^0.17.0"
   }
 }
