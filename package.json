@@ -16,7 +16,7 @@
     "typecheck": "tsc -p packages/sdk && tsc -p apps/keeper"
   },
   "devDependencies": {
-    "@solana-program/system": "^0.15.0",
+    "@solana-program/system": "^0.16.0",
     "@types/node": "^26.6.2",
     "litesvm": "^1.4.1",
     "tsx": "^4.23.15",
